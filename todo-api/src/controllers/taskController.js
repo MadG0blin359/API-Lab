@@ -46,3 +46,26 @@ export const getOneTask = (req, res) => {
     task: tasks[index],
   });
 };
+
+export const createTask = (req, res) => {
+  const { title } = req.body;
+
+  if (!title)
+    return res.status(400).json({
+      status: "fail",
+      message: "Please provide a title.",
+    });
+
+  const nextId =
+    tasks.length > 0 ? Math.max(...tasks.map((task) => task.id)) + 1 : 1;
+
+  const newTask = {
+    id: nextId,
+    title,
+    done: false,
+  };
+
+  tasks.push(newTask);
+
+  return res.status(201).json({ status: "success", task: newTask });
+};
