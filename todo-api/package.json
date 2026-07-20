@@ -1,0 +1,15 @@
+{
+  "name": "todo-api",
+  "version": "1.0.0",
+  "description": "TO-DO List API",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "author": "Shawaiz Shahid",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^5.2.1"
+  }
+}
