@@ -1,4 +1,5 @@
 import express from "express";
+import taskRouter from "./routes/taskRoutes.js";
 
 const app = express();
 
@@ -12,6 +13,8 @@ app.get("/", (req, res) => {
     },
   });
 });
+
+app.use("/api/tasks", taskRouter);
 
 app.get("/api/health", (req, res) =>
   res.status(200).json({
