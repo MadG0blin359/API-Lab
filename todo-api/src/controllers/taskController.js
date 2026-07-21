@@ -141,7 +141,7 @@ export const deleteOne = (req, res) => {
 
   tasks.splice(index, 1);
 
-  return res.status(204).json({
+  return res.status(200).json({
     status: "success",
     messsage: `Task with ID ${id} was deleted.`,
   });

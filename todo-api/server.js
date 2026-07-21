@@ -1,5 +1,8 @@
 import app from "./src/app.js";
 
-const port = 3000;
+const PORT = 3000;
 
-app.listen(port, () => console.log("Server listening on port", port));
+app.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
+  console.log(`Swagger UI available at http://localhost:${PORT}/api/docs`);
+});
