@@ -6,6 +6,9 @@ import taskRouter from "./routes/taskRoutes.js";
 const app = express();
 app.use(express.json());
 
+// Serve static assets from the public folder
+app.use(express.static("public"));
+
 const swaggerDocument = JSON.parse(
   fs.readFileSync(new URL("../openapi.json", import.meta.url)),
 );
