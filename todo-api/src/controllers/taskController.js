@@ -104,4 +104,21 @@ export const updateOne = (req, res) => {
   });
 };
 
-export const deleteOne = (req, res) => {};
+export const deleteOne = (req, res) => {
+  const id = Number(req.params.id);
+
+  const index = findIdx(id);
+
+  if (index === -1)
+    return res.status(404).json({
+      status: "fail",
+      message: `No task was found with ID ${id}.`,
+    });
+
+  delete tasks[index];
+
+  return res.status(204).json({
+    status: "success",
+    messsage: `Task with ID ${id} was deleted.`,
+  });
+};
