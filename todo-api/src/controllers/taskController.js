@@ -16,6 +16,10 @@ const tasks = [
   },
 ];
 
+function findIdx(id) {
+  return tasks.findIndex((task) => task.id === id);
+}
+
 export const getAllTasks = (req, res) => {
   if (!tasks)
     return res.status(404).json({
@@ -33,7 +37,7 @@ export const getAllTasks = (req, res) => {
 export const getOneTask = (req, res) => {
   const id = Number(req.params.id);
 
-  const index = tasks.findIndex((task) => task.id === id);
+  const index = findIdx(id);
 
   if (index === -1)
     return res.status(404).json({
@@ -69,3 +73,35 @@ export const createTask = (req, res) => {
 
   return res.status(201).json({ status: "success", task: newTask });
 };
+
+export const updateOne = (req, res) => {
+  const id = Number(req.params.id);
+  const { title, done } = req.body;
+
+  if (title === undefined && done === undefined)
+    return res.status(400).json({
+      status: "fail",
+      message: "Please provide a title or done status to update.",
+    });
+
+  const index = findIdx(id);
+
+  if (index === -1)
+    return res.status(404).json({
+      status: "fail",
+      message: `No task was found with ID ${id}.`,
+    });
+
+  tasks[index] = {
+    ...tasks[index],
+    ...(title !== undefined && { title }),
+    ...(done !== undefined && { done }),
+  };
+
+  return res.status(200).json({
+    status: "success",
+    task: tasks[index],
+  });
+};
+
+export const deleteOne = (req, res) => {};
