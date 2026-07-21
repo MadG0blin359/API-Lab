@@ -37,6 +37,14 @@ export const getAllTasks = (req, res) => {
 export const getOneTask = (req, res) => {
   const id = Number(req.params.id);
 
+  // Validate that the ID is a valid number
+  if (isNaN(id)) {
+    return res.status(400).json({
+      status: "fail",
+      message: "Invalid ID format provided.",
+    });
+  }
+
   const index = findIdx(id);
 
   if (index === -1)
@@ -84,6 +92,14 @@ export const updateOne = (req, res) => {
       message: "Please provide a title or done status to update.",
     });
 
+  // Validate that the ID is a valid number
+  if (isNaN(id)) {
+    return res.status(400).json({
+      status: "fail",
+      message: "Invalid ID format provided.",
+    });
+  }
+
   const index = findIdx(id);
 
   if (index === -1)
@@ -107,6 +123,14 @@ export const updateOne = (req, res) => {
 export const deleteOne = (req, res) => {
   const id = Number(req.params.id);
 
+  // Validate that the ID is a valid number
+  if (isNaN(id)) {
+    return res.status(400).json({
+      status: "fail",
+      message: "Invalid ID format provided.",
+    });
+  }
+
   const index = findIdx(id);
 
   if (index === -1)
@@ -115,7 +139,7 @@ export const deleteOne = (req, res) => {
       message: `No task was found with ID ${id}.`,
     });
 
-  delete tasks[index];
+  tasks.splice(index, 1);
 
   return res.status(204).json({
     status: "success",
