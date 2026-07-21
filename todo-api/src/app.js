@@ -7,11 +7,11 @@ const app = express();
 app.use(express.json());
 
 const swaggerDocument = JSON.parse(
-  fs.readFileSync(new URL("./openapi.json", import.meta.url)),
+  fs.readFileSync(new URL("../openapi.json", import.meta.url)),
 );
 
 // Mount Swagger UI at /api/docs
-app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 app.get("/", (req, res) => {
   res.status(200).json({
@@ -19,14 +19,14 @@ app.get("/", (req, res) => {
     data: {
       name: "Task API",
       version: "1.0",
-      endpoints: ["/api/tasks", "/api/health", "/api/docs"],
+      endpoints: ["/tasks", "/health", "/docs"],
     },
   });
 });
 
-app.use("/api/tasks", taskRouter);
+app.use("/tasks", taskRouter);
 
-app.get("/api/health", (req, res) =>
+app.get("/health", (req, res) =>
   res.status(200).json({
     status: "success",
     message: "Server is up and running.",
