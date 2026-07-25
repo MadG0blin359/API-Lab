@@ -4,7 +4,7 @@ import * as taskController from "../controllers/task.controller.js";
 
 const router = Router();
 
-router.param("id", taskController.params.validator);
+router.param("id", validateTaskID);
 
 router
   .route("/")
