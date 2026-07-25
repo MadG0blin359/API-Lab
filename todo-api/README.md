@@ -62,4 +62,4 @@ Connection: keep-alive
 
 Access the interactive API documentation interface locally by navigating to `http://localhost:3000/docs` in your web browser.
 
-![Swagger UI Checkpoint](./public/assets/Swagger-UI.jpg)
+![Swagger UI Checkpoint](./public/screenshots/Swagger-UI.jpg)
