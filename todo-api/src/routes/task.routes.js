@@ -1,7 +1,10 @@
 import { Router } from "express";
+import { validateTaskID } from "../validators/task.params.validator.js";
 import * as taskController from "../controllers/task.controller.js";
 
 const router = Router();
+
+router.param("id", taskController.params.validator);
 
 router
   .route("/")
