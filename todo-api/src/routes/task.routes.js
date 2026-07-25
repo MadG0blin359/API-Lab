@@ -13,8 +13,8 @@ router
 
 router
   .route("/:id")
-  .get(taskController.getOneTask)
-  .put(taskController.updateOne)
-  .delete(taskController.deleteOne);
+  .get(taskController.getTaskById)
+  .put(taskController.updateTaskById)
+  .delete(taskController.deleteTaskById);
 
 export default router;
