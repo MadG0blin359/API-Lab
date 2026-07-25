@@ -5,6 +5,8 @@ import fs from "fs";
 import taskRouter from "./routes/task.routes.js";
 import metaRouter from "./routes/meta.routes.js";
 
+import globalErrorHandler from "./middlewares/error.handler.js";
+
 function createApp() {
   const app = express();
   app.use(express.json());
@@ -23,6 +25,8 @@ function createApp() {
       message: `Can't find ${req.originalUrl} on this server.`,
     }),
   );
+
+  app.use(globalErrorHandler);
 }
 
 export default createApp;
