@@ -1,4 +1,4 @@
-import AppError from "../utils/app.error";
+import AppError from "../utils/app.error.js";
 import taskRepository from "../repositories/task.repository.js";
 
 class TaskService {
@@ -14,16 +14,13 @@ class TaskService {
 
   getTaskById(id) {
     const idx = taskRepository.findById(id);
-
-    if (!idx) throw new AppError(404, `No task was found with ID ${id}.`);
+    if (idx === -1) throw new AppError(404, `No task was found with ID ${id}.`);
 
     return this.tasks[idx];
   }
 
-  createTask(taskData) {
-    const { title } = taskData;
-
-    if (!title || title.trim() === "")
+  createTask(title) {
+    if (!title || typeof title !== "string" || title.trim() === "")
       throw new AppError(400, "Please provide a valid title.");
 
     const nextId =
@@ -49,7 +46,7 @@ class TaskService {
 
     const idx = taskRepository.findById(id);
 
-    if (!idx) throw new AppError(404, `No task was found with ID ${id}.`);
+    if (idx === -1) throw new AppError(404, `No task was found with ID ${id}.`);
 
     return taskRepository.update(idx, { title, done });
   }
@@ -57,7 +54,7 @@ class TaskService {
   deleteTaskById(id) {
     const idx = taskRepository.findById(id);
 
-    if (!idx) throw new AppError(404, `No task was found with ID ${id}.`);
+    if (idx === -1) throw new AppError(404, `No task was found with ID ${id}.`);
 
     taskRepository.delete(idx);
   }

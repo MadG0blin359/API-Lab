@@ -8,7 +8,7 @@ class AppError extends Error {
     this.isOperational = true;
 
     // Captures the stack trace, excluding the constructor call itself
-    Error.capureStackTrace(this, this.constructor);
+    Error.captureStackTrace(this, this.constructor);
   }
 }
 

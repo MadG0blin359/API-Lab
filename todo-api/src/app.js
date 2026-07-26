@@ -27,6 +27,8 @@ function createApp() {
   );
 
   app.use(globalErrorHandler);
+
+  return app;
 }
 
 export default createApp;

@@ -31,14 +31,14 @@ class TaskRepository {
   }
 
   update(idx, updateData) {
-    tasks[index] = {
-      ...tasks[index],
+    tasks[idx] = {
+      ...tasks[idx],
       ...(updateData.title !== undefined && { title: updateData.title }),
       ...(updateData.done !== undefined && { done: updateData.done }),
     };
 
     // Return the freshly updated object
-    return tasks[index];
+    return tasks[idx];
   }
 
   delete(index) {
