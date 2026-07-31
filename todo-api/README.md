@@ -49,9 +49,9 @@ Connection: keep-alive
   "status": "success",
   "totalCount": 3,
   "data": [
-    { "id": 1, "title": "First Assignment", "description": "Task details...", isComplete": true },
-    { "id": 2, "title": "Second Assignment", "description": "Task details...", isComplete": true },
-    { "id": 3, "title": "Third Assignment", "description": "Task details...", isComplete": false }
+    { "id": 1, "title": "First Assignment", "description": "Task details...", "isComplete": true },
+    { "id": 2, "title": "Second Assignment", "description": "Task details...", "isComplete": true },
+    { "id": 3, "title": "Third Assignment", "description": "Task details...", "isComplete": false }
   ]
 }
 ```
@@ -74,7 +74,17 @@ We chose SQLite for this application due to its enterprise-grade features wrappe
 
 **Available Commands:**
 
-Plain textANTLR4BashCC#CSSCoffeeScriptCMakeDartDjangoDockerEJSErlangGitGoGraphQLGroovyHTMLJavaJavaScriptJSONJSXKotlinLaTeXLessLuaMakefileMarkdownMATLABMarkupObjective-CPerlPHPPowerShell.propertiesProtocol BuffersPythonRRubySass (Sass)Sass (Scss)SchemeSQLShellSwiftSVGTSXTypeScriptWebAssemblyYAMLXML`   # Start the development server (auto-initializes and seeds the DB)  npm start  # Wipe all data and reset the primary key sequence back to 0  npm run db:reset   `
+```
+# Start the development server (auto-initializes and seeds the DB)
+npm run start:dev
+
+# Wipe all data and reset the primary key sequence back to 0
+npm run db:reset
+```
+
+- Use the VS Code extension [SQLite Viewer](https://marketplace.visualstudio.com/items?itemName=qwtel.sqlite-viewer) to view .db file directly.
+
+![SQLite Checkpoint](./public/screenshots/Better-SQLite-Dummy-Data.jpg)
 
 ---
 
