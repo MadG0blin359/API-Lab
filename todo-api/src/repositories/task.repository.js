@@ -1,23 +1,5 @@
 import db from "../config/database.js";
 
-const tasks = [
-  {
-    id: 1,
-    title: "First Assignment",
-    isComplete: true,
-  },
-  {
-    id: 2,
-    title: "Second Assignment",
-    isComplete: true,
-  },
-  {
-    id: 3,
-    title: "Third Assignment",
-    isComplete: false,
-  },
-];
-
 class TaskRepository {
   // Static private one-time compiled statements
   static #findAllStmt = db.prepare(
@@ -25,7 +7,7 @@ class TaskRepository {
   );
   static #findByIdStmt = db.prepare("SELECT * FROM tasks WHERE id = ?");
   static #createStmt = db.prepare(
-    "INSERT INTO tasks (title, description, isComplete) VALUES(?, ?, 0)",
+    "INSERT INTO tasks (title, description, isComplete) VALUES(?, ?, ?)",
   );
   static #updateStmt = db.prepare(`UPDATE tasks
     SET title = COALESCE(?, title),
@@ -34,12 +16,53 @@ class TaskRepository {
     WHERE id = ?
     `);
   static #deleteStmt = db.prepare("DELETE FROM tasks WHERE id = ?");
+  static #countStmt = db.prepare("SELECT COUNT(*) as count FROM tasks");
 
-  // Clean-up
-  static #deleteAllStmt = db.prepare("DELETE FROM tasks");
-  static #resetCounterStmt = db.prepare(
-    "UPDATE sqlite_sequence SET seq = 0 WHERE name = 'tasks'",
-  );
+  constructor() {
+    this.#seedDatabaseIfEmpty();
+  }
+
+  #seedDatabaseIfEmpty() {
+    // result: { count: 0 }
+    const result = TaskRepository.#countStmt.get();
+
+    if (result.count === 0) {
+      console.log("🌱 Database is empty. Seeding initial data...");
+
+      const initialTasks = [
+        {
+          title: "First Assignment",
+          description: "Task details...",
+          isComplete: true,
+        },
+        {
+          title: "Second Assignment",
+          description: "Task details...",
+          isComplete: true,
+        },
+        {
+          title: "Third Assignment",
+          description: "Task details...",
+          isComplete: false,
+        },
+      ];
+
+      // a transaction for bulk inserts for massive performance gains
+      const seedTransaction = db.transaction((tasks) => {
+        for (const task of tasks) {
+          TaskRepository.#createStmt.run(
+            task.title,
+            task.description,
+            task.isComplete ? 1 : 0, // Convert boolean to SQLite 1/0
+          );
+        }
+      });
+
+      // 5. Execute the transaction
+      seedTransaction(initialTasks);
+      console.log("✅ Database seeding complete!");
+    }
+  }
 
   findAll() {
     const dataArr = TaskRepository.#findAllStmt.all();
@@ -66,7 +89,7 @@ class TaskRepository {
   create(taskData) {
     const { title, description = null } = taskData;
 
-    const infoObj = TaskRepository.#createStmt.run(title, description);
+    const infoObj = TaskRepository.#createStmt.run(title, description, 0);
     return this.findById(infoObj.lastInsertRowid);
   }
 
