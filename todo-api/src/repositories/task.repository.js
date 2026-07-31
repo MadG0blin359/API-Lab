@@ -1,48 +1,92 @@
+import db from "../config/database.js";
+
 const tasks = [
   {
     id: 1,
     title: "First Assignment",
-    done: true,
+    isComplete: true,
   },
   {
     id: 2,
     title: "Second Assignment",
-    done: true,
+    isComplete: true,
   },
   {
     id: 3,
     title: "Third Assignment",
-    done: false,
+    isComplete: false,
   },
 ];
 
 class TaskRepository {
+  // Static private one-time compiled statements
+  static #findAllStmt = db.prepare(
+    "SELECT * FROM tasks ORDER BY updatedAt DESC",
+  );
+  static #findByIdStmt = db.prepare("SELECT * FROM tasks WHERE id = ?");
+  static #createStmt = db.prepare(
+    "INSERT INTO tasks (title, description, isComplete) VALUES(?, ?, 0)",
+  );
+  static #updateStmt = db.prepare(`UPDATE tasks
+    SET title = COALESCE(?, title),
+        description = COALESCE(?, description),
+        isComplete = COALESCE(?, isComplete)
+    WHERE id = ?
+    `);
+  static #deleteStmt = db.prepare("DELETE FROM tasks WHERE id = ?");
+
+  // Clean-up
+  static #deleteAllStmt = db.prepare("DELETE FROM tasks");
+  static #resetCounterStmt = db.prepare(
+    "UPDATE sqlite_sequence SET seq = 0 WHERE name = 'tasks'",
+  );
+
   findAll() {
-    return tasks;
+    const dataArr = TaskRepository.#findAllStmt.all();
+    // Format the SQLite boolean (1/0) back to true/false for the client
+    return dataArr.map((task) => ({
+      ...task,
+      isComplete: !!task.isComplete,
+    }));
   }
 
   findById(id) {
-    return tasks.findIndex((t) => t.id === id);
-  }
+    let dataObj = TaskRepository.#findByIdStmt.get(id);
 
-  create(newTask) {
-    tasks.push(newTask);
-    return newTask;
-  }
+    if (!dataObj) return undefined;
 
-  update(idx, updateData) {
-    tasks[idx] = {
-      ...tasks[idx],
-      ...(updateData.title !== undefined && { title: updateData.title }),
-      ...(updateData.done !== undefined && { done: updateData.done }),
+    dataObj = {
+      ...dataObj,
+      isComplete: !!dataObj.isComplete,
     };
 
-    // Return the freshly updated object
-    return tasks[idx];
+    return dataObj;
   }
 
-  delete(index) {
-    tasks.splice(index, 1);
+  create(taskData) {
+    const { title, description = null } = taskData;
+
+    const infoObj = TaskRepository.#createStmt.run(title, description);
+    return this.findById(infoObj.lastInsertRowid);
+  }
+
+  update(id, taskData) {
+    const { title, description, isComplete } = taskData;
+    const infoObj = TaskRepository.#updateStmt.run(
+      title !== undefined ? title : null,
+      description !== undefined ? description : null,
+      isComplete !== undefined ? (isComplete ? 1 : 0) : null,
+      id,
+    );
+
+    if (infoObj.changes === 0) return null;
+
+    return this.findById(id);
+  }
+
+  delete(id) {
+    const infoObj = TaskRepository.#deleteStmt.run(id);
+    return infoObj.changes > 0;
   }
 }
 
