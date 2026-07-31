@@ -12,7 +12,8 @@ class TaskRepository {
   static #updateStmt = db.prepare(`UPDATE tasks
     SET title = COALESCE(?, title),
         description = COALESCE(?, description),
-        isComplete = COALESCE(?, isComplete)
+        isComplete = COALESCE(?, isComplete),
+        updatedAt = CURRENT_TIMESTAMP
     WHERE id = ?
     `);
   static #deleteStmt = db.prepare("DELETE FROM tasks WHERE id = ?");
