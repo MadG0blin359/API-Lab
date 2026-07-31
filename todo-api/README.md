@@ -48,13 +48,33 @@ Connection: keep-alive
 {
   "status": "success",
   "totalCount": 3,
-  "tasks": [
-    { "id": 1, "title": "First Assignment", "done": true },
-    { "id": 2, "title": "Second Assignment", "done": true },
-    { "id": 3, "title": "Third Assignment", "done": false }
+  "data": [
+    { "id": 1, "title": "First Assignment", "description": "Task details...", isComplete": true },
+    { "id": 2, "title": "Second Assignment", "description": "Task details...", isComplete": true },
+    { "id": 3, "title": "Third Assignment", "description": "Task details...", isComplete": false }
   ]
 }
 ```
+
+---
+
+## Database Architecture
+
+This project utilizes [SQLite](https://sqlite.org/) as its core relational database management system, interfaced via the [better-sqlite3](https://github.com/WiseLibs/better-sqlite3) Node.js driver.
+
+### Why SQLite?
+
+Unlike traditional RDBMS environments (PostgreSQL, MySQL) that require complex client-server architectures, daemon processes, and network communication overhead, SQLite is a **serverless, embedded database**.
+
+We chose SQLite for this application due to its enterprise-grade features wrapped in a zero-configuration footprint:
+
+- **Zero Configuration:** No background server process to install, start, or troubleshoot.
+- **Single-File Portability:** The entire database (tables, indexes, triggers, and views) is stored as a single, cross-platform .db file on the host machine.
+- **ACID Compliant:** Strict transaction support guarantees Atomicity, Consistency, Isolation, and Durability, even in the event of hardware power failures.
+
+**Available Commands:**
+
+Plain textANTLR4BashCC#CSSCoffeeScriptCMakeDartDjangoDockerEJSErlangGitGoGraphQLGroovyHTMLJavaJavaScriptJSONJSXKotlinLaTeXLessLuaMakefileMarkdownMATLABMarkupObjective-CPerlPHPPowerShell.propertiesProtocol BuffersPythonRRubySass (Sass)Sass (Scss)SchemeSQLShellSwiftSVGTSXTypeScriptWebAssemblyYAMLXML`   # Start the development server (auto-initializes and seeds the DB)  npm start  # Wipe all data and reset the primary key sequence back to 0  npm run db:reset   `
 
 ---
 
