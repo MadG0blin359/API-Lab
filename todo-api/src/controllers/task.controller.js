@@ -21,13 +21,12 @@ export const getTaskById = asyncHandler((req, res) => {
 });
 
 export const createTask = asyncHandler((req, res) => {
-  const newTask = taskService.createTask(req.body.title);
+  const newTask = taskService.createTask(req.body);
   return res.status(201).json({ status: "success", data: newTask });
 });
 
 export const updateTaskById = asyncHandler((req, res) => {
-  const { title, done } = req.body;
-  const task = taskService.updateTaskById(req.taskId, title, done);
+  const task = taskService.updateTaskById(req.taskId, req.body);
 
   return res.status(200).json({
     status: "success",
@@ -38,7 +37,7 @@ export const updateTaskById = asyncHandler((req, res) => {
 export const deleteTaskById = asyncHandler((req, res) => {
   taskService.deleteTaskById(req.taskId);
 
-  return res.status(204).json({
+  return res.status(200).json({
     status: "success",
     message: `Task with ID ${req.taskId} was deleted.`,
     data: null,
