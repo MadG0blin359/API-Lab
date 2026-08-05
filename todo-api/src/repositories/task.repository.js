@@ -18,6 +18,9 @@ class TaskRepository {
     `);
   static #deleteStmt = db.prepare("DELETE FROM tasks WHERE id = ?");
   static #countStmt = db.prepare("SELECT COUNT(*) as count FROM tasks");
+  static #findByStatusStmt = db.prepare(
+    "SELECT * FROM tasks WHERE isComplete = ? ORDER BY updatedAt DESC",
+  );
 
   constructor() {
     this.#seedDatabaseIfEmpty();
@@ -85,6 +88,16 @@ class TaskRepository {
     };
 
     return dataObj;
+  }
+
+  findByStatus(isComplete) {
+    const isCompleteInt = isComplete ? 1 : 0;
+    const dataArr = TaskRepository.#findByStatusStmt.all(isCompleteInt);
+
+    dataArr.map((task) => ({
+      ...task,
+      isComplete: !!task.isComplete,
+    }));
   }
 
   create(taskData) {

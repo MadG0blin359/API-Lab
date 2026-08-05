@@ -1,8 +1,9 @@
 import taskService from "../services/task.service.js";
 import asyncHandler from "../utils/async.handler.js";
 
-export const getAllTasks = asyncHandler((req, res) => {
-  const tasks = taskService.getAllTasks();
+export const getAllTasks = asyncHandler(async (req, res) => {
+  const { isComplete } = req.query;
+  const tasks = await taskService.getAllTasks(isComplete);
 
   return res.status(200).json({
     status: "success",
@@ -11,8 +12,8 @@ export const getAllTasks = asyncHandler((req, res) => {
   });
 });
 
-export const getTaskById = asyncHandler((req, res) => {
-  const task = taskService.getTaskById(req.taskId);
+export const getTaskById = asyncHandler(async (req, res) => {
+  const task = await taskService.getTaskById(req.taskId);
 
   return res.status(200).json({
     status: "success",
@@ -20,13 +21,13 @@ export const getTaskById = asyncHandler((req, res) => {
   });
 });
 
-export const createTask = asyncHandler((req, res) => {
-  const newTask = taskService.createTask(req.body);
+export const createTask = asyncHandler(async (req, res) => {
+  const newTask = await taskService.createTask(req.body);
   return res.status(201).json({ status: "success", data: newTask });
 });
 
-export const updateTaskById = asyncHandler((req, res) => {
-  const task = taskService.updateTaskById(req.taskId, req.body);
+export const updateTaskById = asyncHandler(async (req, res) => {
+  const task = await taskService.updateTaskById(req.taskId, req.body);
 
   return res.status(200).json({
     status: "success",
@@ -34,8 +35,8 @@ export const updateTaskById = asyncHandler((req, res) => {
   });
 });
 
-export const deleteTaskById = asyncHandler((req, res) => {
-  taskService.deleteTaskById(req.taskId);
+export const deleteTaskById = asyncHandler(async (req, res) => {
+  await taskService.deleteTaskById(req.taskId);
 
   return res.status(200).json({
     status: "success",
