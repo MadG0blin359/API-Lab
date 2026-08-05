@@ -2,9 +2,16 @@ import AppError from "../utils/app.error.js";
 import taskRepository from "../repositories/task.repository.js";
 
 class TaskService {
-  getAllTasks(isCompleteQuery) {
+  getAllTasks(reqOptions) {
+    const { isComplete, search } = reqOptions;
     let dataArr;
-    if (isCompleteQuery !== undefined) {
+
+    if (search !== undefined) {
+      if (typeof search !== "string" || search.trim() === "") {
+        throw new AppError(400, "Search query must be a valid string.");
+      }
+      dataArr = taskRepository.search(search.trim());
+    } else if (isCompleteQuery !== undefined) {
       if (isCompleteQuery !== "true" && isCompleteQuery !== "false") {
         throw new AppError(
           400,
@@ -19,7 +26,8 @@ class TaskService {
       dataArr = taskRepository.findAll();
     }
 
-    if (!dataArr) throw new AppError(404, "No tasks found!");
+    if (!dataArr || dataArr.length === 0)
+      throw new AppError(404, "No tasks found!");
 
     return dataArr;
   }

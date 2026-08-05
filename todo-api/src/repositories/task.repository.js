@@ -21,6 +21,9 @@ class TaskRepository {
   static #findByStatusStmt = db.prepare(
     "SELECT * FROM tasks WHERE isComplete = ? ORDER BY updatedAt DESC",
   );
+  static #searchStmt = db.prepare(
+    "SELECT * FROM tasks WHERE title LIKE ? OR description LIKE ? ORDER BY updatedAt DESC",
+  );
 
   constructor() {
     this.#seedDatabaseIfEmpty();
@@ -68,13 +71,17 @@ class TaskRepository {
     }
   }
 
-  findAll() {
-    const dataArr = TaskRepository.#findAllStmt.all();
+  #mapDataArray(dataArr) {
     // Format the SQLite boolean (1/0) back to true/false for the client
     return dataArr.map((task) => ({
       ...task,
       isComplete: !!task.isComplete,
     }));
+  }
+
+  findAll() {
+    const dataArr = TaskRepository.#findAllStmt.all();
+    return this.#mapDataArray(dataArr);
   }
 
   findById(id) {
@@ -94,10 +101,15 @@ class TaskRepository {
     const isCompleteInt = isComplete ? 1 : 0;
     const dataArr = TaskRepository.#findByStatusStmt.all(isCompleteInt);
 
-    return dataArr.map((task) => ({
-      ...task,
-      isComplete: !!task.isComplete,
-    }));
+    return this.#mapDataArray(dataArr);
+  }
+
+  search(searchString) {
+    const safePattern = `%${searchString}%`;
+
+    const dataArr = TaskRepository.#searchStmt.all(safePattern, safePattern);
+
+    return this.#mapDataArray(dataArr);
   }
 
   create(taskData) {
