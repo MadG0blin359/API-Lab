@@ -94,7 +94,7 @@ class TaskRepository {
     const isCompleteInt = isComplete ? 1 : 0;
     const dataArr = TaskRepository.#findByStatusStmt.all(isCompleteInt);
 
-    dataArr.map((task) => ({
+    return dataArr.map((task) => ({
       ...task,
       isComplete: !!task.isComplete,
     }));
