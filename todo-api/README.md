@@ -26,6 +26,7 @@ npm install && npm start
 | :--------- | :------------ | :----------------------------- | :------------------------------------------------------------------ | :------------- |
 | **GET**    | `/tasks`      | Retrieve all tasks             | None                                                                | `200 OK`       |
 | **GET**    | `/tasks/{id}` | Retrieve a specific task by ID | Path parameter: `id` (integer)                                      | `200 OK`       |
+| **GET**    | `/stats`      | Retrieve task statistics       | None                                                                | `200 OK`       |
 | **POST**   | `/tasks`      | Create a new task              | JSON `{ "title": "string" }`                                        | `201 Created`  |
 | **PUT**    | `/tasks/{id}` | Update an existing task        | Path parameter: `id`, JSON `{ "title": "string", "done": boolean }` | `200 OK`       |
 | **DELETE** | `/tasks/{id}` | Delete a task by ID            | Path parameter: `id` (integer)                                      | `200 OK`       |
