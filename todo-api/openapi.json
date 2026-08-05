@@ -14,9 +14,50 @@
     "/tasks": {
       "get": {
         "summary": "Get all tasks",
+        "description": "Retrieve a list of tasks. Supports filtering, searching, and pagination.",
+        "parameters": [
+          {
+            "name": "isComplete",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "Filter tasks by completion status"
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Search tasks by title or description"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "description": "Maximum number of tasks to return (for pagination)"
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "description": "Number of tasks to skip before returning results (for pagination)"
+          }
+        ],
         "responses": {
           "200": {
-            "description": "List of all tasks retrieved successfully"
+            "description": "List of tasks retrieved successfully"
           },
           "404": {
             "description": "No tasks found"
@@ -35,7 +76,11 @@
                 "properties": {
                   "title": {
                     "type": "string",
-                    "example": "Finish Homework"
+                    "example": "Complete API integration"
+                  },
+                  "description": {
+                    "type": "string",
+                    "example": "Finalize the SQLite endpoints before migrating to Postgres."
                   }
                 }
               }
@@ -47,7 +92,7 @@
             "description": "Task created successfully"
           },
           "400": {
-            "description": "Please provide a title"
+            "description": "Please provide a valid title"
           }
         }
       }
@@ -102,7 +147,11 @@
                     "type": "string",
                     "example": "Updated Task Title"
                   },
-                  "done": {
+                  "description": {
+                    "type": "string",
+                    "example": "Updated details for the task."
+                  },
+                  "isComplete": {
                     "type": "boolean",
                     "example": true
                   }
@@ -145,6 +194,50 @@
           },
           "404": {
             "description": "No task was found with ID"
+          }
+        }
+      }
+    },
+    "/stats": {
+      "get": {
+        "summary": "Get task statistics",
+        "description": "Retrieve aggregated database statistics including total, completed, and pending tasks.",
+        "responses": {
+          "200": {
+            "description": "Task statistics retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "success"
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "total": {
+                          "type": "integer",
+                          "example": 3
+                        },
+                        "complete": {
+                          "type": "integer",
+                          "example": 2
+                        },
+                        "pending": {
+                          "type": "integer",
+                          "example": 1
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Failed to compute database statistics"
           }
         }
       }
