@@ -39,6 +39,16 @@ class TaskService {
     return dataObj;
   }
 
+  getTaskStats() {
+    const stats = taskRepository.getStats();
+
+    if (!stats) {
+      throw new AppError(500, "Failed to compute database statistics.");
+    }
+
+    return stats;
+  }
+
   createTask(newTask) {
     const { title, description = null } = newTask;
     if (!title || typeof title !== "string" || title.trim() === "")

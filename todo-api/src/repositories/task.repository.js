@@ -24,6 +24,9 @@ class TaskRepository {
   static #searchStmt = db.prepare(
     "SELECT * FROM tasks WHERE title LIKE ? OR description LIKE ? ORDER BY updatedAt DESC",
   );
+  static #statsStmt = db.prepare(
+    "SELECT COUNT(*) as total, COUNT(CASE WHEN isComplete = 1 THEN 1 END) as complete, COUNT(CASE WHEN isComplete = 0 THEN 1 END) as pending FROM tasks",
+  );
 
   constructor() {
     this.#seedDatabaseIfEmpty();
@@ -110,6 +113,15 @@ class TaskRepository {
     const dataArr = TaskRepository.#searchStmt.all(safePattern, safePattern);
 
     return this.#mapDataArray(dataArr);
+  }
+
+  getStats() {
+    const stats = TaskRepository.#statsStmt.get();
+    return {
+      total: stats.total || 0,
+      complete: stats.complete || 0,
+      pending: stats.pending || 0,
+    };
   }
 
   create(taskData) {
