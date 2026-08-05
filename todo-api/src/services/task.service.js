@@ -3,10 +3,26 @@ import taskRepository from "../repositories/task.repository.js";
 
 class TaskService {
   getAllTasks(reqOptions) {
-    const { isComplete, search } = reqOptions;
+    const { isComplete, search, limit, offset } = reqOptions;
+    const isCompleteQuery = isComplete;
     let dataArr;
 
-    if (search !== undefined) {
+    if (limit !== undefined && offset !== undefined) {
+      const limitNum = parseInt(limit, 10);
+      const offsetNum = parseInt(offset, 10);
+
+      // Validate that they are valid, non-negative numbers
+      if (
+        isNaN(limitNum) ||
+        isNaN(offsetNum) ||
+        limitNum <= 0 ||
+        offsetNum < 0
+      ) {
+        throw new AppError(400, "Limit must be > 0 and offset must be >= 0.");
+      }
+
+      dataArr = taskRepository.paginate(limitNum, offsetNum);
+    } else if (search !== undefined) {
       if (typeof search !== "string" || search.trim() === "") {
         throw new AppError(400, "Search query must be a valid string.");
       }

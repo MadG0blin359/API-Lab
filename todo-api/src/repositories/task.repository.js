@@ -27,6 +27,9 @@ class TaskRepository {
   static #statsStmt = db.prepare(
     "SELECT COUNT(*) as total, COUNT(CASE WHEN isComplete = 1 THEN 1 END) as complete, COUNT(CASE WHEN isComplete = 0 THEN 1 END) as pending FROM tasks",
   );
+  static #paginateStmt = db.prepare(
+    "SELECT * FROM tasks ORDER BY updatedAt DESC LIMIT ? OFFSET ?",
+  );
 
   constructor() {
     this.#seedDatabaseIfEmpty();
@@ -148,6 +151,12 @@ class TaskRepository {
   delete(id) {
     const infoObj = TaskRepository.#deleteStmt.run(id);
     return infoObj.changes > 0;
+  }
+
+  paginate(limit, offset) {
+    const dataArr = TaskRepository.#paginateStmt.all(limit, offset);
+
+    return this.#mapDataArray(dataArr);
   }
 }
 

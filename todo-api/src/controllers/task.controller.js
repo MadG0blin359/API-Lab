@@ -2,8 +2,13 @@ import taskService from "../services/task.service.js";
 import asyncHandler from "../utils/async.handler.js";
 
 export const getAllTasks = asyncHandler(async (req, res) => {
-  const { isComplete, search } = req.query;
-  const tasks = await taskService.getAllTasks({ isComplete, search });
+  const { isComplete, search, limit, offset } = req.query;
+  const tasks = await taskService.getAllTasks({
+    isComplete,
+    search,
+    limit,
+    offset,
+  });
 
   return res.status(200).json({
     status: "success",
