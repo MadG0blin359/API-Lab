@@ -1,0 +1,40 @@
+services:
+  postgres_db:
+    image: postgres:18-alpine
+    container_name: task_api_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      # Updated path for Postgres 18+ compatibility
+      # Ensures data persists if the container is stopped or removed
+      - pgdata:/var/lib/postgresql
+      # Mount the schema file as a read-only init script
+      - ./src/config/schema.sql:/docker-entrypoint-initdb.d/init.sql:ro
+
+  pgbouncer:
+    image: edoburu/pgbouncer:latest
+    container_name: task_api_pgbouncer
+    restart: always
+    environment:
+      # PgBouncer requires these to authenticate with the Postgres container
+      DB_USER: ${POSTGRES_USER}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      ADMIN_USERS: ${POSTGRES_USER} # Explicitly grant the admin user access to the PgBouncer console
+      DB_HOST: postgres_db
+      DB_NAME: ${POSTGRES_DB}
+      POOL_MODE: transaction
+      AUTH_TYPE: scram-sha-256
+      MAX_CLIENT_CONN: ${PGB_MAX_CLIENT_CONN} # Allowed Node.js connections
+      DEFAULT_POOL_SIZE: ${PGB_DEFAULT_POOL_SIZE} # Share Node.js connections across Postgres connections
+    ports:
+      # PgBouncer binds to port 5432 on host.
+      - "${DB_PORT}:5432"
+    depends_on:
+      - postgres_db
+
+volumes:
+  # Declares the named volume for Docker to manage within its storage location
+  pgdata:

@@ -1,162 +1,158 @@
 import db from "../config/database.js";
 
 class TaskRepository {
-  // Static private one-time compiled statements
-  static #findAllStmt = db.prepare(
-    "SELECT * FROM tasks ORDER BY updatedAt DESC",
-  );
-  static #findByIdStmt = db.prepare("SELECT * FROM tasks WHERE id = ?");
-  static #createStmt = db.prepare(
-    "INSERT INTO tasks (title, description, isComplete) VALUES(?, ?, ?)",
-  );
-  static #updateStmt = db.prepare(`UPDATE tasks
-    SET title = COALESCE(?, title),
-        description = COALESCE(?, description),
-        isComplete = COALESCE(?, isComplete),
-        updatedAt = CURRENT_TIMESTAMP
-    WHERE id = ?
-    `);
-  static #deleteStmt = db.prepare("DELETE FROM tasks WHERE id = ?");
-  static #countStmt = db.prepare("SELECT COUNT(*) as count FROM tasks");
-  static #findByStatusStmt = db.prepare(
-    "SELECT * FROM tasks WHERE isComplete = ? ORDER BY updatedAt DESC",
-  );
-  static #searchStmt = db.prepare(
-    "SELECT * FROM tasks WHERE title LIKE ? OR description LIKE ? ORDER BY updatedAt DESC",
-  );
-  static #statsStmt = db.prepare(
-    "SELECT COUNT(*) as total, COUNT(CASE WHEN isComplete = 1 THEN 1 END) as complete, COUNT(CASE WHEN isComplete = 0 THEN 1 END) as pending FROM tasks",
-  );
-  static #paginateStmt = db.prepare(
-    "SELECT * FROM tasks ORDER BY updatedAt DESC LIMIT ? OFFSET ?",
-  );
+  async seedDatabaseIfEmpty() {
+    try {
+      const result = await db.query("SELECT COUNT(*) as count FROM tasks");
+      // PostgreSQL returns COUNT as a string (bigint), so it must be parsed
+      const count = parseInt(result.rows[0].count, 10);
 
-  constructor() {
-    this.#seedDatabaseIfEmpty();
-  }
+      if (count === 0) {
+        console.log("🌱 Database is empty. Seeding initial data...");
 
-  #seedDatabaseIfEmpty() {
-    // result: { count: 0 }
-    const result = TaskRepository.#countStmt.get();
+        const initialTasks = [
+          {
+            title: "First Assignment",
+            description: "Task details...",
+            is_complete: true,
+          },
+          {
+            title: "Second Assignment",
+            description: "Task details...",
+            is_complete: true,
+          },
+          {
+            title: "Third Assignment",
+            description: "Task details...",
+            is_complete: false,
+          },
+        ];
 
-    if (result.count === 0) {
-      console.log("🌱 Database is empty. Seeding initial data...");
+        // Acquire a dedicated client from the pool for the transaction
+        const client = await db.connect();
+        try {
+          // a transaction for bulk inserts for massive performance gains
+          await client.query("BEGIN");
+          const insertQuery =
+            "INSERT INTO tasks (title, description, is_complete) VALUES($1, $2, $3)";
 
-      const initialTasks = [
-        {
-          title: "First Assignment",
-          description: "Task details...",
-          isComplete: true,
-        },
-        {
-          title: "Second Assignment",
-          description: "Task details...",
-          isComplete: true,
-        },
-        {
-          title: "Third Assignment",
-          description: "Task details...",
-          isComplete: false,
-        },
-      ];
+          for (const task of initialTasks) {
+            await client.query(insertQuery, [
+              task.title,
+              task.description,
+              task.is_complete,
+            ]);
+          }
 
-      // a transaction for bulk inserts for massive performance gains
-      const seedTransaction = db.transaction((tasks) => {
-        for (const task of tasks) {
-          TaskRepository.#createStmt.run(
-            task.title,
-            task.description,
-            task.isComplete ? 1 : 0, // Convert boolean to SQLite 1/0
-          );
+          await client.query("COMMIT");
+          console.log("✅ Database seeding complete!");
+        } catch (error) {
+          await client.query("ROLLBACK");
+          console.error("❌ Transaction failed, rolled back.", error);
+        } finally {
+          client.release();
         }
-      });
-
-      // 5. Execute the transaction
-      seedTransaction(initialTasks);
-      console.log("✅ Database seeding complete!");
+      }
+    } catch (error) {
+      console.error(
+        "❌ Seeding failed. Ensure the tasks table exists.",
+        error.message,
+      );
     }
   }
 
-  #mapDataArray(dataArr) {
-    // Format the SQLite boolean (1/0) back to true/false for the client
-    return dataArr.map((task) => ({
-      ...task,
-      isComplete: !!task.isComplete,
-    }));
+  async findAll() {
+    const result = await db.query(
+      "SELECT * FROM tasks ORDER BY updated_at DESC",
+    );
+    return result.rows;
   }
 
-  findAll() {
-    const dataArr = TaskRepository.#findAllStmt.all();
-    return this.#mapDataArray(dataArr);
+  async findById(id) {
+    const result = await db.query("SELECT * FROM tasks WHERE id = $1", [id]);
+    return result.rows[0];
   }
 
-  findById(id) {
-    let dataObj = TaskRepository.#findByIdStmt.get(id);
-
-    if (!dataObj) return undefined;
-
-    dataObj = {
-      ...dataObj,
-      isComplete: !!dataObj.isComplete,
-    };
-
-    return dataObj;
+  async findByStatus(is_complete) {
+    const result = await db.query(
+      "SELECT * FROM tasks WHERE is_complete = $1 ORDER BY updated_at DESC",
+      [is_complete],
+    );
+    return result.rows;
   }
 
-  findByStatus(isComplete) {
-    const isCompleteInt = isComplete ? 1 : 0;
-    const dataArr = TaskRepository.#findByStatusStmt.all(isCompleteInt);
-
-    return this.#mapDataArray(dataArr);
-  }
-
-  search(searchString) {
+  async search(searchString) {
     const safePattern = `%${searchString}%`;
-
-    const dataArr = TaskRepository.#searchStmt.all(safePattern, safePattern);
-
-    return this.#mapDataArray(dataArr);
+    const result = await db.query(
+      "SELECT * FROM tasks WHERE title ILIKE $1 OR description ILIKE $2 ORDER BY updated_at DESC",
+      [safePattern, safePattern],
+    );
+    return result.rows;
   }
 
-  getStats() {
-    const stats = TaskRepository.#statsStmt.get();
+  async getStats() {
+    const result = await db.query(`SELECT COUNT(*) as total, 
+      COUNT(CASE WHEN is_complete = true THEN 1 END) as complete,
+      COUNT(CASE WHEN is_complete = false THEN 1 END) as pending
+      FROM tasks
+      `);
+
+    const stats = result.rows[0];
     return {
-      total: stats.total || 0,
-      complete: stats.complete || 0,
-      pending: stats.pending || 0,
+      total: parseInt(stats.total, 10) || 0,
+      complete: parseInt(stats.complete, 10) || 0,
+      pending: parseInt(stats.pending, 10) || 0,
     };
   }
 
-  create(taskData) {
+  async create(taskData) {
     const { title, description = null } = taskData;
 
-    const infoObj = TaskRepository.#createStmt.run(title, description, 0);
-    return this.findById(infoObj.lastInsertRowid);
-  }
-
-  update(id, taskData) {
-    const { title, description, isComplete } = taskData;
-    const infoObj = TaskRepository.#updateStmt.run(
-      title !== undefined ? title : null,
-      description !== undefined ? description : null,
-      isComplete !== undefined ? (isComplete ? 1 : 0) : null,
-      id,
+    const result = await db.query(
+      "INSERT INTO tasks (title, description, is_complete) VALUES ($1, $2, $3) RETURNING *",
+      [title, description, false],
     );
 
-    if (infoObj.changes === 0) return null;
-
-    return this.findById(id);
+    return result.rows[0];
   }
 
-  delete(id) {
-    const infoObj = TaskRepository.#deleteStmt.run(id);
-    return infoObj.changes > 0;
+  async update(id, taskData) {
+    const { title, description, is_complete } = taskData;
+
+    const result = await db.query(
+      `
+      UPDATE tasks
+      SET title = COALESCE($1, title),
+          description = COALESCE($2, description),
+          is_complete = COALESCE($3, is_complete),
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = $4
+      RETURNING *
+      `,
+      [
+        title !== undefined ? title : null,
+        description !== undefined ? description : null,
+        is_complete !== undefined ? is_complete : null,
+        id,
+      ],
+    );
+
+    if (result.rowCount === 0) return null;
+    return result.rows[0];
   }
 
-  paginate(limit, offset) {
-    const dataArr = TaskRepository.#paginateStmt.all(limit, offset);
+  async delete(id) {
+    const result = await db.query("DELETE FROM tasks WHERE id = $1", [id]);
+    return result.rowCount > 0;
+  }
 
-    return this.#mapDataArray(dataArr);
+  async paginate(limit, offset) {
+    const result = await db.query(
+      "SELECT * FROM tasks ORDER BY updated_at DESC LIMIT $1 OFFSET $2",
+      [limit, offset],
+    );
+
+    return result.rows;
   }
 }
 

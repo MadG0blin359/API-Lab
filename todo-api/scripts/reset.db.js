@@ -1,25 +1,22 @@
 import db from "../src/config/database.js";
 
-// Use 'npm run db:reset' to run this script
+async function resetDatabase() {
+  console.log("⚠️ Starting database reset...");
 
-console.log("⚠️ Starting database reset...");
+  try {
+    // TRUNCATE deletes all rows instantly.
+    // RESTART IDENTITY resets the SERIAL sequence back to 1.
+    // This is inherently a single atomic transaction in PostgreSQL.
+    await db.query("TRUNCATE TABLE tasks RESTART IDENTITY CASCADE;");
 
-try {
-  // 1. We use a database transaction.
-  // This guarantees that if the first query works but the second fails,
-  // the whole thing is reversed to prevent corruption.
-  const resetTransaction = db.transaction(() => {
-    // 2. Delete all rows from the tasks table
-    db.prepare("DELETE FROM tasks").run();
-
-    // 3. Reset the internal auto-increment counter back to 0
-    db.prepare("UPDATE sqlite_sequence SET seq = 0 WHERE name = 'tasks'").run();
-  });
-
-  // 4. Execute the transaction
-  resetTransaction();
-
-  console.log("✅ Database reset successful! The next task will have ID 1.");
-} catch (error) {
-  console.error("❌ Failed to reset database:", error.message);
+    console.log("✅ Database reset successful! The next task will have ID 1.");
+  } catch (error) {
+    console.error("❌ Failed to reset database:", error.message);
+  } finally {
+    // Crucial: Close the PostgreSQL connection pool to allow the terminal script to exit gracefully
+    await db.end();
+  }
 }
+
+// Execute the async function
+resetDatabase();

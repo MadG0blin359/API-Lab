@@ -1,19 +1,21 @@
-import Databse from "better-sqlite3";
-import fs from "fs";
-import path from "path";
-import { fileURLToPath } from "url";
+import pkg from "pg";
+const { Pool } = pkg;
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-const db = new Databse(path.join(__dirname, "../../tasks.db"), {
-  verbose: console.log, // log all executed SQL queries for debugging
+const db = new Pool({
+  user: process.env.POSTGRES_USER,
+  password: process.env.POSTGRES_PASSWORD,
+  database: process.env.POSTGRES_DB,
+  host: process.env.DB_HOST,
+  port: process.env.DB_PORT,
+  max: parseInt(process.env.DB_POOL_MAX, 10) || 20,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 2000,
 });
-db.pragma("journal_mode = WAL");
 
-const schemaPath = path.join(__dirname, "schema.sql");
-const schemaSql = fs.readFileSync(schemaPath, "utf8");
-
-db.exec(schemaSql);
+db.connect()
+  .then(() =>
+    console.log("✅ Successfully connected to PostgreSQL Docker container."),
+  )
+  .catch((err) => console.error("❌ Database connection error", err.stack));
 
 export default db;
