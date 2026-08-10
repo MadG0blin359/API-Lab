@@ -24,7 +24,7 @@ npm install && npm start
 
 | Method     | Endpoint      | Description                    | Request Body / Parameters                                           | Success Status |
 | :--------- | :------------ | :----------------------------- | :------------------------------------------------------------------ | :------------- |
-| **GET**    | `/tasks`      | Retrieve all tasks             | Optional: limit, offset, search, is_complete                        | `200 OK`       |
+| **GET**    | `/tasks`      | Retrieve all tasks             | Optional Queries: limit, offset, search, is_complete                | `200 OK`       |
 | **GET**    | `/tasks/{id}` | Retrieve a specific task by ID | Path parameter: `id` (integer)                                      | `200 OK`       |
 | **GET**    | `/stats`      | Retrieve task statistics       | None                                                                | `200 OK`       |
 | **POST**   | `/tasks`      | Create a new task              | JSON `{ "title": "string" }`                                        | `201 Created`  |
