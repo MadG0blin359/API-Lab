@@ -24,7 +24,7 @@ npm install && npm start
 
 | Method     | Endpoint      | Description                    | Request Body / Parameters                                           | Success Status |
 | :--------- | :------------ | :----------------------------- | :------------------------------------------------------------------ | :------------- |
-| **GET**    | `/tasks`      | Retrieve all tasks             | None                                                                | `200 OK`       |
+| **GET**    | `/tasks`      | Retrieve all tasks             | Optional: limit, offset, search, is_complete                        | `200 OK`       |
 | **GET**    | `/tasks/{id}` | Retrieve a specific task by ID | Path parameter: `id` (integer)                                      | `200 OK`       |
 | **GET**    | `/stats`      | Retrieve task statistics       | None                                                                | `200 OK`       |
 | **POST**   | `/tasks`      | Create a new task              | JSON `{ "title": "string" }`                                        | `201 Created`  |
@@ -124,7 +124,7 @@ docker-compose down -v
 docker exec -it task_api_postgres psql -U admin -h task_api_pgbouncer -p 5432 pgbouncer
 ```
 
-- Execute specialized administration Pgbouncer commands.
+- Execute specialized administration PgBouncer commands.
 
 ```
 SHOW POOLS; # Displays how many pools exist, how many server connections are currently active, how many are idle, and how many clients are waiting for a connection.
