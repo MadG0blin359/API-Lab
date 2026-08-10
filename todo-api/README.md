@@ -63,7 +63,7 @@ Connection: keep-alive
 
 This project utilizes [Postgres](https://www.postgresql.org/) as its core relational database management system, interfaced via CLI.
 
-### Why SQLite? (Legacy)
+### SQLite (Legacy)
 
 Unlike traditional RDBMS environments (PostgreSQL, MySQL) that require complex client-server architectures, daemon processes, and network communication overhead, SQLite is a **serverless, embedded database**.
 
@@ -122,6 +122,18 @@ docker-compose down -v
 # -p 5432: The internal port PgBouncer is listening on
 # pgbouncer: The name of the virtual admin database
 docker exec -it task_api_postgres psql -U admin -h task_api_pgbouncer -p 5432 pgbouncer
+```
+
+- Execute specialized administration Pgbouncer commands.
+
+```
+SHOW POOLS; # Displays how many pools exist, how many server connections are currently active, how many are idle, and how many clients are waiting for a connection.
+
+SHOW CLIENTS; # Lists every single active connection from your Node.js application.
+
+SHOW SERVERS; # Lists the actual internal connections PgBouncer currently has open with PostgreSQL.
+
+SHOW STATS; # Displays metrics on total queries processed, network bytes sent/received, and average transaction duration.
 ```
 
 ## Swagger UI Documentation
