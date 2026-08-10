@@ -61,9 +61,9 @@ Connection: keep-alive
 
 ## Database Architecture
 
-This project utilizes [SQLite](https://sqlite.org/) as its core relational database management system, interfaced via the [better-sqlite3](https://github.com/WiseLibs/better-sqlite3) Node.js driver.
+This project utilizes [Postgres](https://www.postgresql.org/) as its core relational database management system, interfaced via CLI.
 
-### Why SQLite?
+### Why SQLite? (Legacy)
 
 Unlike traditional RDBMS environments (PostgreSQL, MySQL) that require complex client-server architectures, daemon processes, and network communication overhead, SQLite is a **serverless, embedded database**.
 
@@ -85,9 +85,44 @@ npm run db:reset
 
 - Use the VS Code extension [SQLite Viewer](https://marketplace.visualstudio.com/items?itemName=qwtel.sqlite-viewer) to view .db file directly.
 
-![SQLite Checkpoint](./public/screenshots/Better-SQLite-Dummy-Data.jpg)
+![SQLite Checkpoint](./public/screenshots/Better-SQLite-Dummy-Data-Legacy.jpg)
 
 ---
+
+## PostgreSQL & PgBouncer
+
+Transitioning from an embedded database to a robust client-server architecture, this application now utilizes PostgreSQL paired with PgBouncer.
+
+We upgraded to PostgreSQL for its enterprise-grade data integrity and implemented PgBouncer to elegantly handle high-concurrency connection pooling:
+
+- **Containerized Infrastructure:** Deployed via Docker Compose, the database and proxy layers run in isolated, production-identical environments without cluttering the host machine.
+
+- **Transaction Multiplexing:** PgBouncer intercepts lightweight client connections from the Node.js API and shares them across a strict, limited pool of actual PostgreSQL connections. This eliminates memory bottlenecks under high load.
+
+- **Enterprise Standards:** Features strict ACID compliance, a secure fail-fast application bootstrap sequence with strict environment validation, and a standardized snake_case architecture for all database objects.
+
+**Available Commands:**
+
+```
+# Boot the database and PgBouncer infrastructure in the background
+docker-compose up -d
+
+# Start the Node.js Express server (automatically validates env & seeds DB)
+npm run start:dev
+
+# Destroy the containers and wipe the database volume entirely
+docker-compose down -v
+```
+
+- Use the psql command line inside your terminal to access the virtual PgBouncer administration console for live metrics:
+
+```
+# -U admin: Connects as the admin user
+# -h task_api_pgbouncer: Targets the PgBouncer container via Docker's internal network
+# -p 5432: The internal port PgBouncer is listening on
+# pgbouncer: The name of the virtual admin database
+docker exec -it task_api_postgres psql -U admin -h task_api_pgbouncer -p 5432 pgbouncer
+```
 
 ## Swagger UI Documentation
 
