@@ -63,33 +63,7 @@ Connection: keep-alive
 
 This project utilizes [Postgres](https://www.postgresql.org/) as its core relational database management system, interfaced via CLI.
 
-### SQLite (Legacy)
-
-Unlike traditional RDBMS environments (PostgreSQL, MySQL) that require complex client-server architectures, daemon processes, and network communication overhead, SQLite is a **serverless, embedded database**.
-
-We chose SQLite for this application due to its enterprise-grade features wrapped in a zero-configuration footprint:
-
-- **Zero Configuration:** No background server process to install, start, or troubleshoot.
-- **Single-File Portability:** The entire database (tables, indexes, triggers, and views) is stored as a single, cross-platform .db file on the host machine.
-- **ACID Compliant:** Strict transaction support guarantees Atomicity, Consistency, Isolation, and Durability, even in the event of hardware power failures.
-
-**Available Commands:**
-
-```
-# Start the development server (auto-initializes and seeds the DB)
-npm run start:dev
-
-# Wipe all data and reset the primary key sequence back to 0
-npm run db:reset
-```
-
-- Use the VS Code extension [SQLite Viewer](https://marketplace.visualstudio.com/items?itemName=qwtel.sqlite-viewer) to view .db file directly.
-
-![SQLite Checkpoint](./public/screenshots/Better-SQLite-Dummy-Data-Legacy.jpg)
-
----
-
-## PostgreSQL & PgBouncer
+### PostgreSQL & PgBouncer
 
 Transitioning from an embedded database to a robust client-server architecture, this application now utilizes PostgreSQL paired with PgBouncer.
 
