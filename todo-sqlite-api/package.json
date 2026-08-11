@@ -1,0 +1,22 @@
+{
+  "name": "todo-api",
+  "version": "1.0.0",
+  "description": "TO-DO List API",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start:prod": "node --env-file=.env server.js",
+    "start:dev": "nodemon --env-file=.env server.js",
+    "db:reset": "node scripts/reset.db.js"
+  },
+  "author": "Shawaiz Shahid",
+  "license": "ISC",
+  "dependencies": {
+    "better-sqlite3": "^13.0.2",
+    "express": "^5.2.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14",
+    "swagger-ui-express": "^5.0.1"
+  }
+}
