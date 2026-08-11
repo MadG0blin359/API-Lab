@@ -1,0 +1,33 @@
+# Dependency directories
+node_modules/
+npm-debug.log
+npm-debug.log.*
+yarn-error.log
+yarn.lock
+
+# Environment variables and secrets
+.env
+.env.*
+.env.local
+.env.development
+.env.production
+
+# Version control
+.git/
+.gitignore
+
+# Editor and IDE configurations
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+
+# Build outputs and runtime logs
+logs/
+*.log
+coverage/
+.nyc_output/
+
+# Documentation
+README.md

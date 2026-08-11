@@ -30,10 +30,23 @@ services:
       MAX_CLIENT_CONN: ${PGB_MAX_CLIENT_CONN} # Allowed Node.js connections
       DEFAULT_POOL_SIZE: ${PGB_DEFAULT_POOL_SIZE} # Share Node.js connections across Postgres connections
     ports:
-      # PgBouncer binds to port 5432 on host.
       - "${DB_PORT}:5432"
     depends_on:
       - postgres_db
+
+  api:
+    build: .
+    image: task-app
+    container_name: task-api-node
+    restart: always
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env # bulk-inject env varaibles
+    environment:
+      - NODE_ENV=production
+    depends_on:
+      - pgbouncer
 
 volumes:
   # Declares the named volume for Docker to manage within its storage location
