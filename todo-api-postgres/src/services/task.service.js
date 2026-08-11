@@ -108,6 +108,12 @@ class TaskService {
     if (!result) throw new AppError(404, `No task was found with ID ${id}.`);
     return true;
   }
+
+  async getHealth() {
+    const result = await taskRepository.health();
+    if (!result) throw new AppError(500, "Database health check failed.");
+    return true;
+  }
 }
 
 export default new TaskService();

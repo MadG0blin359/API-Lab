@@ -11,11 +11,14 @@ export const getAPIEndpoints = (req, res) =>
     },
   });
 
-export const getServerHealth = (req, res) =>
+export const getServerHealth = asyncHandler(async (req, res) => {
+  await taskService.getHealth();
+
   res.status(200).json({
     status: "success",
     message: "Server is up and running.",
   });
+});
 
 export const getTaskStats = asyncHandler(async (req, res) => {
   const stats = await taskService.getTaskStats();

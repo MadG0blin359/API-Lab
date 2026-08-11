@@ -154,6 +154,11 @@ class TaskRepository {
 
     return result.rows;
   }
+
+  async health() {
+    const result = await db.query("SELECT 1");
+    return result.rowCount === 1;
+  }
 }
 
 export default new TaskRepository();
