@@ -9,10 +9,15 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
     volumes:
       # Updated path for Postgres 18+ compatibility
-      # Ensures data persists if the container is stopped or removed
       - pgdata:/var/lib/postgresql
       # Mount the schema file as a read-only init script
       - ./src/config/schema.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      # pg_isready is a native PostgreSQL utility that pings the database connection
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   pgbouncer:
     image: edoburu/pgbouncer:latest
@@ -32,7 +37,8 @@ services:
     ports:
       - "${DB_PORT}:5432"
     depends_on:
-      - postgres_db
+      postgres_db:
+        condition: service_healthy
 
   api:
     build: .
@@ -46,7 +52,10 @@ services:
     environment:
       - NODE_ENV=production
     depends_on:
-      - pgbouncer
+      postgres_db:
+        condition: service_healthy
+      pgbouncer:
+        condition: service_started
 
 volumes:
   # Declares the named volume for Docker to manage within its storage location
