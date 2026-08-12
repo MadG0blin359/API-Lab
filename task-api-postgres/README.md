@@ -12,10 +12,14 @@ This project is a modular Task Management backend service designed to handle tas
 
 ## Installation & Running
 
-Ensure you have [Node.js](https://nodejs.org/) installed on your system. Run the following single command to install all dependencies and start the server:
+Ensure you have **Docker** and **Docker Compose** installed on your system. This application is fully containerized. Run the following commands to cleanly build the images and start the entire architecture (Node.js API, PgBouncer, and PostgreSQL) in the background:
 
 ```bash
-npm install && npm start
+# Compile the multi-stage images without using the cache for absolute determinism
+docker-compose build --no-cache
+
+# Start the container infrastructure in detached mode
+docker-compose up -d
 ```
 
 ---
@@ -78,11 +82,8 @@ We upgraded to PostgreSQL for its enterprise-grade data integrity and implemente
 **Available Commands:**
 
 ```
-# Boot the database and PgBouncer infrastructure in the background
-docker-compose up -d
-
-# Start the Node.js Express server (automatically validates env & seeds DB)
-npm run start:dev
+# View live terminal logs for the Node.js API container
+docker logs -f task-api-node
 
 # Destroy the containers and wipe the database volume entirely
 docker-compose down -v
