@@ -4,7 +4,7 @@ import taskRouter from "./routes/task.routes.js";
 import metaRouter from "./routes/meta.routes.js";
 import globalErrorHandler from "./middlewares/error.handler.js";
 
-import setupSwagger from "./config/swagger.js";
+import setupSwagger from "./utils/swagger.ui.js";
 
 function createApp() {
   const app = express();
