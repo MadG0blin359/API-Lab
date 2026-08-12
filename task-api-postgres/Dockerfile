@@ -19,6 +19,7 @@ USER node
 
 COPY --chown=node:node --from=builder /app/node_modules ./node_modules
 COPY --chown=node:node --from=builder /app/package*.json ./
+COPY --chown=node:node --from=builder /app/openapi.json ./
 COPY --chown=node:node --from=builder /app/src ./src
 COPY --chown=node:node --from=builder /app/server.js ./
 
