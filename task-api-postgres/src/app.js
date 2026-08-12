@@ -1,21 +1,17 @@
 import express, { json } from "express";
-import swaggerUi from "swagger-ui-express";
-import fs from "fs";
 
 import taskRouter from "./routes/task.routes.js";
 import metaRouter from "./routes/meta.routes.js";
-
 import globalErrorHandler from "./middlewares/error.handler.js";
+
+import setupSwagger from "./config/swagger.js";
 
 function createApp() {
   const app = express();
   app.use(express.json());
 
-  const swaggerDocument = JSON.parse(
-    fs.readFileSync(new URL("../openapi.json", import.meta.url)),
-  );
+  setupSwagger(app);
 
-  app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument)); // Mount Swagger UI at /docs
   app.use("/", metaRouter);
   app.use("/tasks", taskRouter);
 
