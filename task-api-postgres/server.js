@@ -1,6 +1,7 @@
 import createApp from "./src/app.js";
 import taskRepository from "./src/repositories/task.repository.js";
 import validateEnv from "./src/validators/env.validator.js";
+import redisClient from "./src/config/redis.client.js";
 
 // Global Synchronous Code Error Handler
 process.on("uncaughtException", (err) => {
@@ -9,9 +10,6 @@ process.on("uncaughtException", (err) => {
   // Shutdown immediately
   process.exit(1);
 });
-
-const app = createApp();
-const PORT = process.env.API_PORT || 5000;
 
 // Declare server in the outer scope for the unhandledRejection handler
 let server;
@@ -25,6 +23,13 @@ async function bootstrap() {
     // Suspend HTTP initialization until database is verified and seeded
     console.log("⏳ Preparing database...");
     await taskRepository.seedDatabaseIfEmpty();
+
+    await redisClient.connect();
+    const pingResponse = await redisClient.ping();
+    console.log(`🏓 Redis PING Response: ${pingResponse}`);
+
+    const app = createApp();
+    const PORT = process.env.API_PORT || 5000;
 
     // Open network ports only after internal infrastructure is ready
     server = app.listen(PORT, () => {
