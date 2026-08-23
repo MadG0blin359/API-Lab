@@ -4,6 +4,7 @@ import cors from "cors";
 
 import taskRouter from "./routes/task.routes.js";
 import metaRouter from "./routes/meta.routes.js";
+import authRouter from "./routes/auth.routes.js";
 import globalErrorHandler from "./middlewares/error.handler.js";
 
 import setupSwagger from "./utils/swagger.ui.js";
@@ -38,6 +39,7 @@ function createApp() {
   setupSwagger(app);
 
   app.use("/", metaRouter);
+  app.use("/auth", authRouter);
   app.use("/tasks", taskRouter);
 
   app.all(/.*/, (req, res) =>
