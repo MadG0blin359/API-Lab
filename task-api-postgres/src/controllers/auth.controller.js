@@ -34,5 +34,6 @@ export const login = asyncHandler(async (req, res) => {
     access_token: data.session.access_token,
     refresh_token: data.session.refresh_token,
     expires_at: data.session.expires_at,
+    expires_in: data.session.expires_in,
   });
 });
