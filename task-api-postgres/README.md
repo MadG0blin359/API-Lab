@@ -28,9 +28,9 @@ docker-compose up -d
 
 | Method     | Endpoint       | Description                             | Request Body / Parameters                                           | Success Status   |
 | :--------- | :------------- | :-------------------------------------- | :------------------------------------------------------------------ | :--------------- |
-| **POST**   | `/auth/signup` | Create a user account                   | None                                                                | `201 Created`    |
-| **POST**   | `/auth/login`  | Get access, refresh tokens              | None                                                                | `200 OK`         |
-| **POST**   | `/auth/logout` | Blacklist (Redis) Revoked access tokens | None                                                                | `204 No Content` |
+| **POST**   | `/auth/signup` | Create a user account                   | Email, password                                                     | `201 Created`    |
+| **POST**   | `/auth/login`  | Get access, refresh tokens              | Email, password                                                     | `200 OK`         |
+| **POST**   | `/auth/logout` | Blacklist (Redis) Revoked access tokens | Authorization Header - Access Token                                 | `204 No Content` |
 | **GET**    | `/tasks`       | Retrieve all tasks                      | Optional Queries: limit, offset, search, is_complete                | `200 OK`         |
 | **GET**    | `/tasks/{id}`  | Retrieve a specific task by ID          | Path parameter: `id` (integer)                                      | `200 OK`         |
 | **GET**    | `/stats`       | Retrieve task statistics                | None                                                                | `200 OK`         |
