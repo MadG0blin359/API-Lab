@@ -9,7 +9,7 @@ const db = new Pool({
   port: process.env.DB_PORT,
   max: parseInt(process.env.DB_POOL_MAX, 10) || 20,
   idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 2000,
+  connectionTimeoutMillis: 30000,
 });
 
 db.connect()

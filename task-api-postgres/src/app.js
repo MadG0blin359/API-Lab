@@ -39,6 +39,8 @@ function createApp() {
     }),
   );
 
+  setupSwagger(app);
+
   app.use("/", metaRouter);
   app.use("/auth", authRouter);
   app.use("/user", userRouter);
@@ -50,8 +52,6 @@ function createApp() {
       message: `${req.originalUrl} Does Not Exist.`,
     }),
   );
-
-  setupSwagger(app);
 
   app.use(globalErrorHandler);
 
