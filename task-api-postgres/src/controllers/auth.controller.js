@@ -1,22 +1,18 @@
-import asyncHandler from "../utils/async.handler";
+import asyncHandler from "../utils/async.handler.js";
 import supabase from "../config/supabase.client.js";
 import AppError from "../utils/app.error.js";
 
 export const signup = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
 
-  if (!email || !password) {
-    return new AppError(400, "Email and password are required");
-  }
-
-  const { error, data } = await supabase.auth.signup({ email, password });
+  const { error, data } = await supabase.auth.signUp({ email, password });
 
   if (error) {
-    return new AppError(400, error.message);
+    throw new AppError(400, error.message);
   }
 
   return res.status(201).json({
-    status: success,
+    status: "success",
     message: "User SignUp Successfull!",
     data: data.user,
   });
@@ -25,17 +21,13 @@ export const signup = asyncHandler(async (req, res) => {
 export const login = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
 
-  if (!email || !password) {
-    return new AppError(400, "Email and password are required");
-  }
-
   const { error, data } = await supabase.auth.signInWithPassword({
     email,
     password,
   });
 
   if (error) {
-    return new AppError(401, "Invalid login credentials");
+    throw new AppError(401, "Invalid login credentials");
   }
 
   return res.status(200).json({
