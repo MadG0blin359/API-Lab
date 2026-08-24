@@ -26,14 +26,17 @@ docker-compose up -d
 
 ## API Endpoints Reference
 
-| Method     | Endpoint      | Description                    | Request Body / Parameters                                           | Success Status |
-| :--------- | :------------ | :----------------------------- | :------------------------------------------------------------------ | :------------- |
-| **GET**    | `/tasks`      | Retrieve all tasks             | Optional Queries: limit, offset, search, is_complete                | `200 OK`       |
-| **GET**    | `/tasks/{id}` | Retrieve a specific task by ID | Path parameter: `id` (integer)                                      | `200 OK`       |
-| **GET**    | `/stats`      | Retrieve task statistics       | None                                                                | `200 OK`       |
-| **POST**   | `/tasks`      | Create a new task              | JSON `{ "title": "string" }`                                        | `201 Created`  |
-| **PUT**    | `/tasks/{id}` | Update an existing task        | Path parameter: `id`, JSON `{ "title": "string", "done": boolean }` | `200 OK`       |
-| **DELETE** | `/tasks/{id}` | Delete a task by ID            | Path parameter: `id` (integer)                                      | `200 OK`       |
+| Method     | Endpoint       | Description                             | Request Body / Parameters                                           | Success Status   |
+| :--------- | :------------- | :-------------------------------------- | :------------------------------------------------------------------ | :--------------- |
+| **POST**   | `/auth/signup` | Create a user account                   | None                                                                | `201 Created`    |
+| **POST**   | `/auth/login`  | Get access, refresh tokens              | None                                                                | `200 OK`         |
+| **POST**   | `/auth/logout` | Blacklist (Redis) Revoked access tokens | None                                                                | `204 No Content` |
+| **GET**    | `/tasks`       | Retrieve all tasks                      | Optional Queries: limit, offset, search, is_complete                | `200 OK`         |
+| **GET**    | `/tasks/{id}`  | Retrieve a specific task by ID          | Path parameter: `id` (integer)                                      | `200 OK`         |
+| **GET**    | `/stats`       | Retrieve task statistics                | None                                                                | `200 OK`         |
+| **POST**   | `/tasks`       | Create a new task                       | JSON `{ "title": "string" }`                                        | `201 Created`    |
+| **PUT**    | `/tasks/{id}`  | Update an existing task                 | Path parameter: `id`, JSON `{ "title": "string", "done": boolean }` | `200 OK`         |
+| **DELETE** | `/tasks/{id}`  | Delete a task by ID                     | Path parameter: `id` (integer)                                      | `200 OK`         |
 
 ---
 
@@ -115,5 +118,5 @@ SHOW STATS; # Displays metrics on total queries processed, network bytes sent/re
 
 Access the interactive API documentation interface locally by navigating to `http://localhost:3000/docs/` in your web browser.
 
-![Swagger UI Checkpoint](./public/screenshots/Swagger-UI-1.jpg)
-![Swagger UI Checkpoint](./public/screenshots/Swagger-UI-2.jpg)
+![Swagger UI Checkpoint](./public/screenshots/Swagger-UI-1.png)
+![Swagger UI Checkpoint](./public/screenshots/Swagger-UI-2.png)
