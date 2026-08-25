@@ -29,16 +29,16 @@ docker-compose up -d
 | Method     | Endpoint        | Description                             | Request Body / Parameters                                           | Success Status   |
 | :--------- | :-------------- | :-------------------------------------- | :------------------------------------------------------------------ | :--------------- |
 | **POST**   | `/auth/signup`  | Create a user account                   | JSON `{ "email": "string", "password": "string" }`                  | `201 Created`    |
-| **POST**   | `/auth/login`   | Get access, refresh tokens              | `{ "email": "string", "password": "string" }`                       | `200 OK`         |
-| **POST**   | `/auth/logout`  | Blacklist (Redis) Revoked access tokens | Authorization Header - Access Token                                 | `204 No Content` |
+| **POST**   | `/auth/login`   | Get access, refresh tokens              | JSON `{ "email": "string", "password": "string" }`                  | `200 OK`         |
+| **POST**   | `/auth/logout`  | Blacklist (Redis) Revoked access tokens | Authorization Header - Bearer Access Token                          | `204 No Content` |
 | **GET**    | `/tasks`        | Retrieve all tasks                      | Optional Queries: limit, offset, search, is_complete                | `200 OK`         |
 | **GET**    | `/tasks/{id}`   | Retrieve a specific task by ID          | Path parameter: `id` (integer)                                      | `200 OK`         |
 | **GET**    | `/stats`        | Retrieve task statistics                | None                                                                | `200 OK`         |
 | **POST**   | `/tasks`        | Create a new task                       | JSON `{ "title": "string" }`                                        | `201 Created`    |
 | **PUT**    | `/tasks/{id}`   | Update an existing task                 | Path parameter: `id`, JSON `{ "title": "string", "done": boolean }` | `200 OK`         |
 | **DELETE** | `/tasks/{id}`   | Delete a task by ID                     | Path parameter: `id` (integer)                                      | `200 OK`         |
-| **GET**    | `/user/public`  | Create a new task                       | Authorization Header - Access Token                                 | `201 Created`    |
-| **GET**    | `/user/profile` | Create a new task                       | Authorization Header - Access Token                                 | `201 Created`    |
+| **GET**    | `/user/public`  | Get pulic profile data                  | None                                                                | `200 OK`         |
+| **GET**    | `/user/profile` | Get all profile data                    | Authorization Header - Bearer Access Token                          | `200 OK`         |
 
 ---
 
