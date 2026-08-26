@@ -9,6 +9,7 @@ import taskRouter from "./routes/task.routes.js";
 import globalErrorHandler from "./middlewares/error.handler.js";
 
 import setupSwagger from "./utils/swagger.ui.js";
+import { validateCsrfToken } from "./middlewares/csrf.middleware.js";
 
 function createApp() {
   const app = express();
@@ -16,11 +17,18 @@ function createApp() {
   app.use(express.urlencoded({ extended: true }));
   app.use(cookieParser());
 
+  // Verify the Signed Double-Submit Cookie
+  app.use(validateCsrfToken);
+
   // Automatically compress the 'res' if the client supports it, and inject 'Vary: Accept-Encoding' header.
   app.use(compression());
 
   // Configure CORS to dynamically whitelist specific frontend properties
-  const allowedOrigins = ["http://localhost:3000", "https://hoppscotch.io"];
+  const allowedOrigins = [
+    "http://localhost:5173",
+    "http://localhost:3000",
+    "https://hoppscotch.io",
+  ];
 
   app.use(
     cors({
@@ -37,6 +45,9 @@ function createApp() {
           callback(null, false);
         }
       },
+      credentials: true,
+      methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+      allowedHeaders: ["Content-Type", "Accept"],
     }),
   );
 

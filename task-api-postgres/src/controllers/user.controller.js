@@ -4,6 +4,23 @@ import AppError from "../utils/app.error.js";
 import redisClient from "../config/redis.client.js";
 import jwt from "jsonwebtoken";
 
+const clearCookies = (res) => {
+  const cookieOptions = {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "strict",
+  };
+
+  res.clearCookie("access_token", cookieOptions);
+  res.clearCookie("refresh_token", cookieOptions);
+
+  // The CSRF cookie was set with httpOnly: false, so it must be cleared similarly
+  res.clearCookie("csrf_token", {
+    ...cookieOptions,
+    httpOnly: false,
+  });
+};
+
 export const getPublicInfo = (req, res) => {
   return res.status(200).json({
     status: "success",
@@ -40,6 +57,8 @@ export const logout = asyncHandler(async (req, res) => {
   if (error) {
     throw new AppError(400, error.message);
   }
+
+  clearCookies(res);
 
   return res.status(204).send();
 });
