@@ -29,3 +29,13 @@ export const validateAuthorizationHeader = (req, res, next) => {
 
   return next();
 };
+
+export const validateRefreshToken = (req, res, next) => {
+  const { refresh_token } = req.body;
+
+  if (!refresh_token) {
+    return next(new AppError(400, "Refresh token is required"));
+  }
+
+  return next();
+};

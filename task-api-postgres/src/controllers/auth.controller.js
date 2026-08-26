@@ -2,6 +2,15 @@ import asyncHandler from "../utils/async.handler.js";
 import supabase from "../config/supabase.client.js";
 import AppError from "../utils/app.error.js";
 
+function sendSessionDetails(res, data) {
+  return res.status(200).json({
+    access_token: data.session.access_token,
+    refresh_token: data.session.refresh_token,
+    expires_at: data.session.expires_at,
+    expires_in: data.session.expires_in,
+  });
+}
+
 export const signup = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
 
@@ -30,10 +39,16 @@ export const login = asyncHandler(async (req, res) => {
     throw new AppError(401, "Invalid login credentials");
   }
 
-  return res.status(200).json({
-    access_token: data.session.access_token,
-    refresh_token: data.session.refresh_token,
-    expires_at: data.session.expires_at,
-    expires_in: data.session.expires_in,
-  });
+  return sendSessionDetails(res, data);
+});
+
+export const refreshSession = asyncHandler(async (req, res) => {
+  const { refresh_token } = req.body;
+  const { error, data } = await supabase.auth.refreshSession({ refresh_token });
+
+  if (!error || !data.session) {
+    throw new AppError(401, "Invalid or expired refresh token");
+  }
+
+  return sendSessionDetails(res, data);
 });
