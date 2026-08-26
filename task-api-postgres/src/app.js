@@ -14,6 +14,7 @@ function createApp() {
   const app = express();
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
+  app.use(cookieParser());
 
   // Automatically compress the 'res' if the client supports it, and inject 'Vary: Accept-Encoding' header.
   app.use(compression());

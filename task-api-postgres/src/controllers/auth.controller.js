@@ -2,12 +2,21 @@ import asyncHandler from "../utils/async.handler.js";
 import supabase from "../config/supabase.client.js";
 import AppError from "../utils/app.error.js";
 
-function sendSessionDetails(res, data) {
-  return res.status(200).json({
-    access_token: data.session.access_token,
-    refresh_token: data.session.refresh_token,
-    expires_at: data.session.expires_at,
-    expires_in: data.session.expires_in,
+function setSessionCookies(res, data) {
+  const cookieOptions = {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production", // Require HTTPS in production
+    sameSite: "strict",
+  };
+
+  res.cookie("access_token", data.session.access_token, {
+    ...cookieOptions,
+    maxAge: 3600 * 1000, // 1 hour in milliseconds
+  });
+
+  res.cookie("refresh_token", data.session.refresh_token, {
+    ...cookieOptions,
+    maxAge: 7 * 24 * 3600 * 1000, // 7 days in milliseconds
   });
 }
 
@@ -39,7 +48,12 @@ export const login = asyncHandler(async (req, res) => {
     throw new AppError(401, "Invalid login credentials");
   }
 
-  return sendSessionDetails(res, data);
+  setSessionCookies(res, data);
+
+  return res.status(200).json({
+    status: "success",
+    message: "Authentication Successful",
+  });
 });
 
 export const refreshSession = asyncHandler(async (req, res) => {
@@ -50,5 +64,10 @@ export const refreshSession = asyncHandler(async (req, res) => {
     throw new AppError(401, "Invalid or expired refresh token");
   }
 
-  return sendSessionDetails(res, data);
+  setSessionDetails(res, data);
+
+  return res.status(200).json({
+    status: "success",
+    message: "Session Refresh Successful",
+  });
 });

@@ -13,13 +13,7 @@ export const validateEmailPassword = (req, res, next) => {
 };
 
 export const validateAuthorizationHeader = (req, res, next) => {
-  const authHeader = req.headers.authorization;
-
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return next(new AppError(401, "Access token required"));
-  }
-
-  const token = authHeader.split(" ")[1];
+  const token = req.cookies.access_token;
 
   if (!token) {
     return next(new AppError(401, "Access token required"));

@@ -31,6 +31,7 @@ docker-compose up -d
 | **POST**   | `/auth/signup`  | Create a user account                  | JSON `{ "email": "string", "password": "string" }`                  | `201 Created`    |
 | **POST**   | `/auth/login`   | Retrieve access, refresh tokens        | JSON `{ "email": "string", "password": "string" }`                  | `200 OK`         |
 | **POST**   | `/auth/logout`  | Redis blacklist - revoke access tokens | Authorization Header - Bearer Access Token                          | `204 No Content` |
+| **POST**   | `/auth/refresh` | Session refresh                        | refresh_token Header                                                | `200 OK`         |
 | **GET**    | `/tasks`        | Retrieve all tasks                     | Optional Queries: limit, offset, search, is_complete                | `200 OK`         |
 | **GET**    | `/tasks/{id}`   | Retrieve a specific task by ID         | Path parameter: `id` (integer)                                      | `200 OK`         |
 | **GET**    | `/stats`        | Retrieve task statistics               | None                                                                | `200 OK`         |
