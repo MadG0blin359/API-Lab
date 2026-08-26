@@ -112,6 +112,41 @@
         }
       }
     },
+    "/auth/refresh": {
+      "post": {
+        "tags": ["Authentication"],
+        "summary": "Refresh an expired access token",
+        "description": "Exchanges a valid, long-lived refresh token for a new access token and refresh token pair to maintain an active user session.",
+        "responses": {
+          "200": {
+            "description": "Session refreshed successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "access_token": {
+                      "type": "string",
+                      "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                    },
+                    "refresh_token": {
+                      "type": "string",
+                      "example": "vw6dfkdcfqfq"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request (Refresh token is missing from the payload)"
+          },
+          "401": {
+            "description": "Unauthorized (Invalid or expired refresh token)"
+          }
+        }
+      }
+    },
     "/public": {
       "get": {
         "tags": ["User Context"],
