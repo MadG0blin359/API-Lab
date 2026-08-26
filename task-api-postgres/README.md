@@ -121,5 +121,4 @@ SHOW STATS; # Displays metrics on total queries processed, network bytes sent/re
 
 Access the interactive API documentation interface locally by navigating to `http://localhost:3000/docs/` in your web browser.
 
-![Swagger UI Checkpoint](./public/screenshots/Swagger-UI-1.png)
-![Swagger UI Checkpoint](./public/screenshots/Swagger-UI-2.png)
+![Swagger UI Checkpoint](./public/screenshots/Swagger-UI.png)
