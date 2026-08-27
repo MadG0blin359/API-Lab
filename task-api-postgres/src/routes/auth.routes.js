@@ -2,7 +2,7 @@ import { Router } from "express";
 import * as authController from "../controllers/auth.controller.js";
 import {
   validateEmailPassword,
-  validateAuthorizationHeader,
+  validateAccessToken,
   validateRefreshToken,
 } from "../validators/auth.validator.js";
 import * as authMiddleware from "../middlewares/authenticate.user.js";
@@ -20,12 +20,7 @@ router
     authController.signup,
   )
   .post("/login", validateEmailPassword, attachCsrfToken, authController.login)
-  .post(
-    "/logout",
-    validateAuthorizationHeader,
-    authMiddleware.authenticateUser,
-    logout,
-  )
+  .post("/logout", validateAccessToken, authMiddleware.authenticateUser, logout)
   .post(
     "/refresh",
     validateRefreshToken,

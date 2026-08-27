@@ -12,7 +12,7 @@ export const validateEmailPassword = (req, res, next) => {
   return next();
 };
 
-export const validateAuthorizationHeader = (req, res, next) => {
+export const validateAccessToken = (req, res, next) => {
   const token = req.cookies.access_token;
 
   if (!token) {
