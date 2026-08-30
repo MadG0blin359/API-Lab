@@ -2,7 +2,7 @@ import AppError from "../utils/app.error.js";
 import taskRepository from "../repositories/task.repository.js";
 
 class TaskService {
-  async getAllTasks(reqOptions) {
+  async getAllTasks(userId, reqOptions) {
     const { is_complete, search, limit, offset } = reqOptions;
     const isCompleteQuery = is_complete;
     let dataArr;
@@ -21,12 +21,12 @@ class TaskService {
         throw new AppError(400, "Limit must be > 0 and offset must be >= 0.");
       }
 
-      dataArr = await taskRepository.paginate(limitNum, offsetNum);
+      dataArr = await taskRepository.paginate(userId, limitNum, offsetNum);
     } else if (search !== undefined) {
       if (typeof search !== "string" || search.trim() === "") {
         throw new AppError(400, "Search query must be a valid string.");
       }
-      dataArr = await taskRepository.search(search.trim());
+      dataArr = await taskRepository.search(userId, search.trim());
     } else if (isCompleteQuery !== undefined) {
       if (isCompleteQuery !== "true" && isCompleteQuery !== "false") {
         throw new AppError(
@@ -37,9 +37,9 @@ class TaskService {
 
       const isCompleteBool = isCompleteQuery === "true";
 
-      dataArr = await taskRepository.findByStatus(isCompleteBool);
+      dataArr = await taskRepository.findByStatus(userId, isCompleteBool);
     } else {
-      dataArr = await taskRepository.findAll();
+      dataArr = await taskRepository.findAll(userId);
     }
 
     if (!dataArr || dataArr.length === 0)
@@ -48,15 +48,15 @@ class TaskService {
     return dataArr;
   }
 
-  async getTaskById(id) {
-    const dataObj = await taskRepository.findById(id);
+  async getTaskById(userId, id) {
+    const dataObj = await taskRepository.findById(userId, id);
     if (!dataObj) throw new AppError(404, `No task was found with ID ${id}.`);
 
     return dataObj;
   }
 
-  async getTaskStats() {
-    const stats = await taskRepository.getStats();
+  async getTaskStats(userId) {
+    const stats = await taskRepository.getStats(userId);
 
     if (!stats) {
       throw new AppError(500, "Failed to compute database statistics.");
@@ -65,7 +65,7 @@ class TaskService {
     return stats;
   }
 
-  async createTask(newTask) {
+  async createTask(userId, newTask) {
     const { title, description = null } = newTask;
     if (!title || typeof title !== "string" || title.trim() === "")
       throw new AppError(400, "Please provide a valid title.");
@@ -75,10 +75,10 @@ class TaskService {
       description,
     };
 
-    return await taskRepository.create(taskData);
+    return await taskRepository.create(userId, taskData);
   }
 
-  async updateTaskById(id, taskData) {
+  async updateTaskById(userId, id, taskData) {
     const { title, description, is_complete } = taskData;
 
     if (
@@ -91,7 +91,7 @@ class TaskService {
         "Please provide a title, description and/or is_complete status to update task.",
       );
 
-    const updatedTask = await taskRepository.update(id, {
+    const updatedTask = await taskRepository.update(userId, id, {
       title,
       description,
       is_complete,
@@ -103,8 +103,8 @@ class TaskService {
     return updatedTask;
   }
 
-  async deleteTaskById(id) {
-    const result = await taskRepository.delete(id);
+  async deleteTaskById(userId, id) {
+    const result = await taskRepository.delete(userId, id);
     if (!result) throw new AppError(404, `No task was found with ID ${id}.`);
     return true;
   }
