@@ -22,6 +22,12 @@
         "type": "http",
         "scheme": "bearer",
         "bearerFormat": "JWT"
+      },
+      "csrfAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "x-csrf-token",
+        "description": "CSRF token required for state-changing operations"
       }
     }
   },
@@ -105,7 +111,8 @@
         "summary": "End the user's session",
         "security": [
           {
-            "bearerAuth": []
+            "bearerAuth": [],
+            "csrfAuth": []
           }
         ],
         "responses": {
@@ -123,6 +130,11 @@
         "tags": ["Authentication"],
         "summary": "Refresh an expired access token",
         "description": "Exchanges a valid, long-lived refresh token for a new access token and refresh token pair to maintain an active user session.",
+        "security": [
+          {
+            "csrfAuth": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "Session refreshed successfully",
@@ -153,7 +165,7 @@
         }
       }
     },
-    "/public": {
+    "/user/public": {
       "get": {
         "tags": ["User Context"],
         "summary": "Read public, open data",
@@ -164,7 +176,7 @@
         }
       }
     },
-    "/profile": {
+    "/user/profile": {
       "get": {
         "tags": ["User Context"],
         "summary": "Read private profile data",
@@ -240,6 +252,11 @@
       "post": {
         "tags": ["Tasks"],
         "summary": "Create a new task",
+        "security": [
+          {
+            "csrfAuth": []
+          }
+        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -301,6 +318,11 @@
       "put": {
         "tags": ["Tasks"],
         "summary": "Update an existing task",
+        "security": [
+          {
+            "csrfAuth": []
+          }
+        ],
         "parameters": [
           {
             "name": "id",
@@ -351,6 +373,11 @@
       "delete": {
         "tags": ["Tasks"],
         "summary": "Delete a task by ID",
+        "security": [
+          {
+            "csrfAuth": []
+          }
+        ],
         "parameters": [
           {
             "name": "id",
