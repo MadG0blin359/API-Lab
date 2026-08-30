@@ -1,24 +1,20 @@
-import taskService from "../services/task.service.js";
 import asyncHandler from "../utils/async.handler.js";
+import taskService from "../services/task.service.js";
 
 export const getAllTasks = asyncHandler(async (req, res) => {
-  const { is_complete, search, limit, offset } = req.query;
-  const tasks = await taskService.getAllTasks({
-    is_complete,
-    search,
-    limit,
-    offset,
-  });
+  const userId = req.user.id;
+  const tasks = await taskService.getAllTasks(userId, req.query);
 
   return res.status(200).json({
     status: "success",
-    totalCount: tasks.length,
+    results: tasks.length,
     data: tasks,
   });
 });
 
 export const getTaskById = asyncHandler(async (req, res) => {
-  const task = await taskService.getTaskById(req.taskId);
+  const userId = req.user.id;
+  const task = await taskService.getTaskById(userId, req.taskId);
 
   return res.status(200).json({
     status: "success",
@@ -27,12 +23,14 @@ export const getTaskById = asyncHandler(async (req, res) => {
 });
 
 export const createTask = asyncHandler(async (req, res) => {
-  const newTask = await taskService.createTask(req.body);
+  const userId = req.user.id;
+  const newTask = await taskService.createTask(userId, req.body);
   return res.status(201).json({ status: "success", data: newTask });
 });
 
 export const updateTaskById = asyncHandler(async (req, res) => {
-  const task = await taskService.updateTaskById(req.taskId, req.body);
+  const userId = req.user.id;
+  const task = await taskService.updateTaskById(userId, req.taskId, req.body);
 
   return res.status(200).json({
     status: "success",
@@ -41,11 +39,21 @@ export const updateTaskById = asyncHandler(async (req, res) => {
 });
 
 export const deleteTaskById = asyncHandler(async (req, res) => {
-  await taskService.deleteTaskById(req.taskId);
+  const userId = req.user.id;
+  await taskService.deleteTaskById(userId, req.taskId);
 
   return res.status(200).json({
     status: "success",
-    message: `Task with ID ${req.taskId} was deleted.`,
-    data: null,
+    message: "Task deleted successfully.",
+  });
+});
+
+export const getTaskStats = asyncHandler(async (req, res) => {
+  const userId = req.user.id;
+  const stats = await taskService.getTaskStats(userId);
+
+  return res.status(200).json({
+    status: "success",
+    data: stats,
   });
 });
