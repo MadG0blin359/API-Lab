@@ -7,7 +7,7 @@ export const getAPIEndpoints = (req, res) =>
     data: {
       name: "Task API",
       version: "1.0",
-      endpoints: ["/tasks", "/health", "/stats", "/docs"],
+      endpoints: ["/tasks", "/tasks/stats", "/health", "/docs"],
     },
   });
 
@@ -17,14 +17,5 @@ export const getServerHealth = asyncHandler(async (req, res) => {
   res.status(200).json({
     status: "success",
     message: "Server is up and running.",
-  });
-});
-
-export const getTaskStats = asyncHandler(async (req, res) => {
-  const stats = await taskService.getTaskStats();
-
-  return res.status(200).json({
-    status: "success",
-    data: stats,
   });
 });
