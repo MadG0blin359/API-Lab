@@ -1,5 +1,4 @@
 import createApp from "./src/app.js";
-import taskRepository from "./src/repositories/task.repository.js";
 import validateEnv from "./src/validators/env.validator.js";
 import redisClient from "./src/config/redis.client.js";
 
@@ -19,10 +18,6 @@ async function bootstrap() {
   try {
     console.log("🔍 Verifying environment variables...");
     validateEnv();
-
-    // Suspend HTTP initialization until database is verified and seeded
-    console.log("⏳ Preparing database...");
-    await taskRepository.seedDatabaseIfEmpty();
 
     await redisClient.connect();
     const pingResponse = await redisClient.ping();
