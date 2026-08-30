@@ -46,9 +46,10 @@ export const attachCsrfToken = (req, res, next) => {
 // Validates globally in app.js after your cookie-parser
 export const validateCsrfToken = (req, res, next) => {
   const safeMethods = ["GET", "HEAD", "OPTIONS"];
+  const excludedPaths = ["/auth/login", "/auth/signup"];
 
-  // Bypass read-only operations
-  if (safeMethods.includes(req.method)) {
+  // Bypass read-only operations or explicitly excluded paths
+  if (safeMethods.includes(req.method) || excludedPaths.includes(req.path)) {
     return next();
   }
 
