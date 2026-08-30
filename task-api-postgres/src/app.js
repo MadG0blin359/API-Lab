@@ -48,7 +48,7 @@ function createApp() {
       },
       credentials: true,
       methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-      allowedHeaders: ["Content-Type", "Accept"],
+      allowedHeaders: ["Content-Type", "Accept", "x-csrf-token"],
     }),
   );
 
