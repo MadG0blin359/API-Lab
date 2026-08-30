@@ -1,101 +1,48 @@
 import db from "../config/database.js";
 
 class TaskRepository {
-  async seedDatabaseIfEmpty() {
-    try {
-      const result = await db.query("SELECT COUNT(*) as count FROM tasks");
-      // PostgreSQL returns COUNT as a string (bigint), so it must be parsed
-      const count = parseInt(result.rows[0].count, 10);
-
-      if (count === 0) {
-        console.log("🌱 Database is empty. Seeding initial data...");
-
-        const initialTasks = [
-          {
-            title: "First Assignment",
-            description: "Task details...",
-            is_complete: true,
-          },
-          {
-            title: "Second Assignment",
-            description: "Task details...",
-            is_complete: true,
-          },
-          {
-            title: "Third Assignment",
-            description: "Task details...",
-            is_complete: false,
-          },
-        ];
-
-        // Acquire a dedicated client from the pool for the transaction
-        const client = await db.connect();
-        try {
-          // a transaction for bulk inserts for massive performance gains
-          await client.query("BEGIN");
-          const insertQuery =
-            "INSERT INTO tasks (title, description, is_complete) VALUES($1, $2, $3)";
-
-          for (const task of initialTasks) {
-            await client.query(insertQuery, [
-              task.title,
-              task.description,
-              task.is_complete,
-            ]);
-          }
-
-          await client.query("COMMIT");
-          console.log("✅ Database seeding complete!");
-        } catch (error) {
-          await client.query("ROLLBACK");
-          console.error("❌ Transaction failed, rolled back.", error);
-        } finally {
-          client.release();
-        }
-      }
-    } catch (error) {
-      console.error(
-        "❌ Seeding failed. Ensure the tasks table exists.",
-        error.message,
-      );
-    }
-  }
-
-  async findAll() {
+  async findAll(userId) {
     const result = await db.query(
-      "SELECT * FROM tasks ORDER BY updated_at DESC",
+      "SELECT * FROM tasks WHERE user_id = $1 ORDER BY updated_at DESC",
+      [userId],
     );
     return result.rows;
   }
 
-  async findById(id) {
-    const result = await db.query("SELECT * FROM tasks WHERE id = $1", [id]);
+  async findById(userId, id) {
+    const result = await db.query(
+      "SELECT * FROM tasks WHERE id = $1 AND user_id = $2",
+      [id, userId],
+    );
     return result.rows[0];
   }
 
-  async findByStatus(is_complete) {
+  async findByStatus(userId, is_complete) {
     const result = await db.query(
-      "SELECT * FROM tasks WHERE is_complete = $1 ORDER BY updated_at DESC",
-      [is_complete],
+      "SELECT * FROM tasks WHERE user_id = $1 AND is_complete = $2 ORDER BY updated_at DESC",
+      [userId, is_complete],
     );
     return result.rows;
   }
 
-  async search(searchString) {
+  async search(userId, searchString) {
     const safePattern = `%${searchString}%`;
     const result = await db.query(
-      "SELECT * FROM tasks WHERE title ILIKE $1 OR description ILIKE $2 ORDER BY updated_at DESC",
-      [safePattern, safePattern],
+      "SELECT * FROM tasks WHERE user_id = $1 AND (title ILIKE $2 OR description ILIKE $3) ORDER BY updated_at DESC",
+      [userId, safePattern, safePattern],
     );
     return result.rows;
   }
 
-  async getStats() {
-    const result = await db.query(`SELECT COUNT(*) as total, 
+  async getStats(userId) {
+    const result = await db.query(
+      `SELECT COUNT(*) as total, 
       COUNT(CASE WHEN is_complete = true THEN 1 END) as complete,
       COUNT(CASE WHEN is_complete = false THEN 1 END) as pending
       FROM tasks
-      `);
+      WHERE user_id = $1`,
+      [userId],
+    );
 
     const stats = result.rows[0];
     return {
@@ -105,18 +52,18 @@ class TaskRepository {
     };
   }
 
-  async create(taskData) {
+  async create(userId, taskData) {
     const { title, description = null } = taskData;
 
     const result = await db.query(
-      "INSERT INTO tasks (title, description, is_complete) VALUES ($1, $2, $3) RETURNING *",
-      [title, description, false],
+      "INSERT INTO tasks (user_id, title, description, is_complete) VALUES ($1, $2, $3, $4) RETURNING *",
+      [userId, title, description, false],
     );
 
     return result.rows[0];
   }
 
-  async update(id, taskData) {
+  async update(userId, id, taskData) {
     const { title, description, is_complete } = taskData;
 
     const result = await db.query(
@@ -126,7 +73,7 @@ class TaskRepository {
           description = COALESCE($2, description),
           is_complete = COALESCE($3, is_complete),
           updated_at = CURRENT_TIMESTAMP
-      WHERE id = $4
+      WHERE id = $4 AND user_id = $5
       RETURNING *
       `,
       [
@@ -134,6 +81,7 @@ class TaskRepository {
         description !== undefined ? description : null,
         is_complete !== undefined ? is_complete : null,
         id,
+        userId,
       ],
     );
 
@@ -141,15 +89,18 @@ class TaskRepository {
     return result.rows[0];
   }
 
-  async delete(id) {
-    const result = await db.query("DELETE FROM tasks WHERE id = $1", [id]);
+  async delete(userId, id) {
+    const result = await db.query(
+      "DELETE FROM tasks WHERE id = $1 AND user_id = $2",
+      [id, userId],
+    );
     return result.rowCount > 0;
   }
 
-  async paginate(limit, offset) {
+  async paginate(userId, limit, offset) {
     const result = await db.query(
-      "SELECT * FROM tasks ORDER BY updated_at DESC LIMIT $1 OFFSET $2",
-      [limit, offset],
+      "SELECT * FROM tasks WHERE user_id = $1 ORDER BY updated_at DESC LIMIT $2 OFFSET $3",
+      [userId, limit, offset],
     );
 
     return result.rows;
