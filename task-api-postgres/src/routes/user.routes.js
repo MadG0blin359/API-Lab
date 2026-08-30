@@ -9,7 +9,6 @@ router.get("/public", userController.getPublicInfo);
 
 router
   .use(validateAccessToken, authenticateUser)
-  .get("/profile", userController.getProfile)
-  .post("/logout", userController.logout);
+  .get("/profile", userController.getProfile);
 
 export default router;
