@@ -9,8 +9,9 @@ const validateEnv = () => {
     "DB_POOL_MAX",
     "PGB_MAX_CLIENT_CONN",
     "PGB_DEFAULT_POOL_SIZE",
-    "REDIS_HOST",
-    "REDIS_PORT",
+    /* "REDIS_HOST",
+     "REDIS_PORT", */
+    "REDIS_URL",
   ];
 
   const missing = requiredVariables.filter((key) => !process.env[key]);
