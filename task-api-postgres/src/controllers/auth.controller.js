@@ -74,5 +74,5 @@ export const refreshSession = asyncHandler(async (req, res) => {
 
 // Add attachCsrfToken as a middleware in auth routes
 export const sendCsrfToken = (req, res) => {
-  return res.status(200).json({ message: "CSRF token attached to cookies" });
+  return res.status(201).json({ message: "CSRF token attached to cookies" });
 };

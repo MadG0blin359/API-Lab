@@ -28,6 +28,7 @@ docker-compose up -d
 
 | Method     | Endpoint        | Description                            | Request Body / Parameters                                           | Success Status   |
 | :--------- | :-------------- | :------------------------------------- | :------------------------------------------------------------------ | :--------------- |
+| **POST**   | `/auth/csrf`    | Create a csrf token                    | None                                                                | `201 Created`    |
 | **POST**   | `/auth/signup`  | Create a user account                  | JSON `{ "email": "string", "password": "string" }`                  | `201 Created`    |
 | **POST**   | `/auth/login`   | Retrieve access, refresh tokens        | JSON `{ "email": "string", "password": "string" }`                  | `200 OK`         |
 | **POST**   | `/auth/logout`  | Redis blacklist - revoke access tokens | Authorization Header - Bearer Access Token                          | `204 No Content` |
