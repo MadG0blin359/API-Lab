@@ -7,7 +7,13 @@
   },
   "servers": [
     {
-      "url": "http://localhost:3000"
+      "url": "https://api-lab-kiw8.onrender.com",
+      "description": "Production Server"
+    },
+
+    {
+      "url": "http://localhost:3000",
+      "description": "Local Development Server"
     }
   ],
   "components": {

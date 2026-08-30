@@ -36,7 +36,11 @@ async function bootstrap() {
       console.log(
         `🚀 Server is running in ${process.env.NODE_ENV} mode on port ${PORT}...`,
       );
-      console.log(`Swagger UI available at http://localhost:${PORT}/docs`);
+      let url =
+        process.env.NODE_ENV === "production"
+          ? "https://api-lab-kiw8.onrender.com/"
+          : `http://localhost:${PORT}/docs`;
+      console.log(`Swagger UI available at ${url}`);
     });
   } catch (error) {
     console.error("❌ Fatal error during application bootstrap:");
