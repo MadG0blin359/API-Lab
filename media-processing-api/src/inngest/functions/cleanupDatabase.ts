@@ -18,7 +18,7 @@ interface ExpiredJob {
 export const cleanupDatabaseJob = inngestClient.createFunction(
   {
     id: "cleanup-expired-media",
-    trigger: { cron: CLEANUP_CRON_EXPRESSION },
+    triggers: [{ cron: CLEANUP_CRON_EXPRESSION }],
   },
   async ({ step }: { step: any }) => {
     // Step 1: Query media_jobs table for expired records

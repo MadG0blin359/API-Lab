@@ -12,7 +12,7 @@ export const processMediaJob = inngestClient.createFunction(
   {
     id: "process-media-job",
     retries: 2,
-    trigger: { event: "media/process.requested" },
+    triggers: [{ event: "media/process.requested" }],
   },
   async ({ event, step }: { event: any; step: any }) => {
     const { jobId, storagePath, mimetype } = event.data as {

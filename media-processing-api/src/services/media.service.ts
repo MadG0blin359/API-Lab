@@ -13,7 +13,8 @@ export const mediaService = {
         file.originalname,
         file.mimetype,
       );
-    } catch {
+    } catch (err) {
+      console.error("Storage upload error:", err);
       throw new AppError(500, "Failed to cache incoming file.");
     }
 
@@ -21,7 +22,8 @@ export const mediaService = {
     let job: { id: string };
     try {
       job = await mediaRepository.createJob(file.originalname);
-    } catch {
+    } catch (err) {
+      console.error("Database insert error:", err);
       // Compensating action: clean up the uploaded file
       await storageService.deleteFiles([storagePath]);
       throw new AppError(500, "Database insertion failed.");
@@ -37,7 +39,8 @@ export const mediaService = {
           mimetype: file.mimetype,
         },
       });
-    } catch {
+    } catch (err) {
+      console.error("Inngest dispatch error:", err);
       // Compensating action: clean up both storage and DB
       await storageService.deleteFiles([storagePath]);
       throw new AppError(500, "Failed to dispatch processing job.");

@@ -17,7 +17,11 @@ export const uploadMedia = async (req: Request, res: Response, next: NextFunctio
 };
 
 export const getJobStatus = async (req: Request, res: Response, next: NextFunction) => {
-  const { id } = req.params;
+  const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  if (!id) {
+    return next(new AppError(400, "Job ID is required."));
+  }
+
   const data = await mediaService.getJobStatus(id);
 
   return res.status(200).json({
