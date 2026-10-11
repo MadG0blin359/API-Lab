@@ -1,4 +1,5 @@
 import type { Request, Response, NextFunction } from "express";
+import multer from "multer";
 import AppError from "../utils/app.error.js";
 
 const sendErrorDev = (err: AppError, res: Response) => {
@@ -11,19 +12,13 @@ const sendErrorDev = (err: AppError, res: Response) => {
 };
 
 const sendErrorProd = (err: AppError, res: Response) => {
-  // Operational, trusted error: send message to client
   if (err.isOperational) {
     return res.status(err.statusCode).json({
       status: err.status,
       message: err.message,
     });
-
-    // Programming or other unknown error: don't leak error details
   } else {
-    // 1) Log error - deployment platform console
     console.error("Error 💥", err);
-
-    // 2) Send generic message
     return res.status(500).json({
       status: "error",
       message: "Something went wrong!",
@@ -31,24 +26,40 @@ const sendErrorProd = (err: AppError, res: Response) => {
   }
 };
 
+/**
+ * Converts known third-party errors into operational AppErrors
+ * before they reach the environment-specific handler.
+ */
+const normalizeError = (err: Error): AppError => {
+  // Handle Multer file-size and other errors
+  if (err instanceof multer.MulterError) {
+    if (err.code === "LIMIT_FILE_SIZE") {
+      return new AppError(413, "File exceeds the maximum upload size.");
+    }
+    return new AppError(400, `Upload error: ${err.message}`);
+  }
+
+  // Already an AppError — pass through
+  if (err instanceof AppError) return err;
+
+  // Unknown error — wrap as 500
+  const appError = new AppError(500, err.message || "Internal Server Error");
+  appError.isOperational = false;
+  appError.stack = err.stack;
+  return appError;
+};
+
 export default (
-  err: AppError,
+  err: Error,
   req: Request,
   res: Response,
   next: NextFunction,
 ) => {
-  err.statusCode = err.statusCode || 500;
-  err.status = err.status || "Internal Server Error";
+  const error = normalizeError(err);
 
   if (process.env.NODE_ENV === "development") {
-    sendErrorDev(err, res);
-  } else if (process.env.NODE_ENV === "production") {
-    let error = Object.assign(err);
-    sendErrorProd(error, res);
+    sendErrorDev(error, res);
   } else {
-    return res.status(500).json({
-      status: "error",
-      message: "Something went wrong here!",
-    });
+    sendErrorProd(error, res);
   }
 };

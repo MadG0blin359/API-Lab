@@ -7,11 +7,10 @@ import validateEnv from "./validators/env.validator.js";
 process.on("uncaughtException", (err) => {
   console.log("UNCAUGHT EXCEPTION! 💥 Shutting down...");
   console.log(`${err.name}: ${err.message}`);
-  // Shutdown immediately
   process.exit(1);
 });
 
-// Declare server in the outer scope for the unhandledRejection handler
+// Declare server in the outer scope for shutdown handlers
 let server: Server;
 
 (function bootstrap() {
@@ -31,7 +30,7 @@ let server: Server;
     console.error("❌ Fatal error during application bootstrap:");
 
     if (error instanceof Error) console.error(error.message);
-    else console.error(error); // Fallback in case a non-Error object was thrown
+    else console.error(error);
 
     process.exit(1);
   }
@@ -44,7 +43,6 @@ process.on("unhandledRejection", (err) => {
     console.log(`${err.name}: ${err.message}`);
   }
 
-  // Verify the server exists before attempting to close it
   if (server) {
     server.close(() => {
       process.exit(1);
@@ -53,3 +51,18 @@ process.on("unhandledRejection", (err) => {
     process.exit(1);
   }
 });
+
+// Graceful shutdown for container orchestrators (Docker, Railway, etc.)
+for (const signal of ["SIGTERM", "SIGINT"] as const) {
+  process.on(signal, () => {
+    console.log(`\n${signal} received. Closing server gracefully...`);
+    if (server) {
+      server.close(() => {
+        console.log("✅ Server closed.");
+        process.exit(0);
+      });
+    } else {
+      process.exit(0);
+    }
+  });
+}

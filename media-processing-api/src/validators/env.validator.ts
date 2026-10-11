@@ -1,17 +1,11 @@
 const validateEnv = () => {
   const requiredVariables = [
     "NODE_ENV",
-    "POSTGRES_USER",
-    "POSTGRES_PASSWORD",
-    "POSTGRES_DB",
-    "DB_HOST",
-    "DB_PORT",
-    "DB_POOL_MAX",
-    "PGB_MAX_CLIENT_CONN",
-    "PGB_DEFAULT_POOL_SIZE",
-    /* "REDIS_HOST",
-     "REDIS_PORT", */
-    "REDIS_URL",
+    "PORT",
+    "SUPABASE_URL",
+    "SUPABASE_SERVICE_KEY",
+    "INNGEST_EVENT_KEY",
+    "INNGEST_SIGNING_KEY",
   ];
 
   const missing = requiredVariables.filter((key) => !process.env[key]);
