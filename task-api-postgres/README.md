@@ -79,30 +79,38 @@ This API uses a cookie-based authentication system with CSRF protection:
 
 All task endpoints require authentication. Each user can only access their own tasks.
 
-| Method     | Endpoint        | Description                       | Auth Required | CSRF Required |
-| :--------- | :-------------- | :-------------------------------- | :-----------: | :-----------: |
-| **GET**    | `/tasks`        | Get all tasks for current user    | Yes           | No            |
-| **GET**    | `/tasks/stats`  | Get task statistics for user      | Yes           | No            |
-| **GET**    | `/tasks/{id}`   | Get a specific task by ID         | Yes           | No            |
-| **POST**   | `/tasks`        | Create a new task                 | Yes           | Yes           |
-| **PUT**    | `/tasks/{id}`   | Update an existing task           | Yes           | Yes           |
-| **DELETE** | `/tasks/{id}`   | Delete a task by ID               | Yes           | Yes           |
+| Method     | Endpoint               | Description                                           | Auth Required | CSRF Required |
+| :--------- | :--------------------- | :---------------------------------------------------- | :-----------: | :-----------: |
+| **GET**    | `/tasks`               | Get tasks (multi-filter, search, sort, pagination)    | Yes           | No            |
+| **GET**    | `/tasks/stats`         | Get task statistics (total, complete, overdue, etc.)  | Yes           | No            |
+| **POST**   | `/tasks/bulk`          | Perform bulk action (complete, delete, priority, etc) | Yes           | Yes           |
+| **GET**    | `/tasks/{id}`          | Get a specific task by ID                             | Yes           | No            |
+| **POST**   | `/tasks`               | Create a new task (with priority, dueDate, tags)      | Yes           | Yes           |
+| **PUT**    | `/tasks/{id}`          | Update an existing task                               | Yes           | Yes           |
+| **DELETE** | `/tasks/{id}`          | Soft delete task (`?permanent=true` for hard delete)  | Yes           | Yes           |
+| **POST**   | `/tasks/{id}/restore`  | Restore a soft-deleted task from trash                | Yes           | Yes           |
 
 **Query Parameters** for `GET /tasks`:
 
-| Parameter    | Type    | Description                          |
-| :----------- | :------ | :----------------------------------- |
-| `isComplete` | boolean | Filter tasks by completion status    |
-| `search`     | string  | Search tasks by title or description |
-| `limit`      | integer | Max number of tasks to return        |
-| `offset`     | integer | Number of tasks to skip              |
+| Parameter        | Type    | Description                                                             |
+| :--------------- | :------ | :---------------------------------------------------------------------- |
+| `search`         | string  | Search tasks by title or description                                    |
+| `isComplete`     | boolean | Filter tasks by completion status (`true` or `false`)                   |
+| `priority`       | string  | Filter by priority: `low`, `medium`, `high`, `urgent`                   |
+| `tag`            | string  | Filter tasks by tag inclusion                                           |
+| `status`         | string  | Quick status: `all`, `completed`, `pending`, `overdue`                  |
+| `sortBy`         | string  | Sort field: `created_at`, `updated_at`, `due_date`, `priority`, `title` |
+| `sortOrder`      | string  | Sort direction: `asc` or `desc` (default: `desc`)                       |
+| `limit`          | integer | Max number of tasks to return (1-100, default: 20)                       |
+| `offset`         | integer | Number of tasks to skip (default: 0)                                    |
+| `includeDeleted` | boolean | Include soft-deleted tasks (default: `false`)                           |
 
 ### Meta
 
-| Method  | Endpoint  | Description          | Auth Required | CSRF Required |
-| :------ | :-------- | :------------------- | :-----------: | :-----------: |
-| **GET** | `/`       | List API endpoints   | No            | No            |
-| **GET** | `/health` | Server health check  | No            | No            |
+| Method  | Endpoint  | Description                                                 | Auth Required | CSRF Required |
+| :------ | :-------- | :---------------------------------------------------------- | :-----------: | :-----------: |
+| **GET** | `/`       | List API endpoints directory                                | No            | No            |
+| **GET** | `/health` | Detailed health check (DB/Redis latency, uptime, memory)   | No            | No            |
 
 ---
 
@@ -115,11 +123,19 @@ CREATE TABLE IF NOT EXISTS tasks (
     title VARCHAR(255) NOT NULL,
     description TEXT,
     is_complete BOOLEAN NOT NULL DEFAULT false,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    priority VARCHAR(20) NOT NULL DEFAULT 'medium' CHECK (priority IN ('low', 'medium', 'high', 'urgent')),
+    due_date TIMESTAMP WITH TIME ZONE DEFAULT NULL,
+    tags TEXT[] NOT NULL DEFAULT '{}',
+    deleted_at TIMESTAMP WITH TIME ZONE DEFAULT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE INDEX IF NOT EXISTS idx_tasks_user_id ON tasks(user_id);
+CREATE INDEX IF NOT EXISTS idx_tasks_user_deleted ON tasks(user_id, deleted_at);
+CREATE INDEX IF NOT EXISTS idx_tasks_priority ON tasks(user_id, priority);
+CREATE INDEX IF NOT EXISTS idx_tasks_due_date ON tasks(user_id, due_date);
+CREATE INDEX IF NOT EXISTS idx_tasks_tags ON tasks USING GIN (tags);
 ```
 
 ---

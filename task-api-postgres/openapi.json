@@ -1,16 +1,15 @@
 {
   "openapi": "3.0.0",
   "info": {
-    "title": "Task API",
-    "version": "1.0.0",
-    "description": "API documentation for the task manager application with Supabase Authentication."
+    "title": "Task Manager API",
+    "version": "2.0.0",
+    "description": "Production-grade Task Management API with PostgreSQL, Redis, PgBouncer, and Supabase Authentication."
   },
   "servers": [
     {
       "url": "https://api-lab-kiw8.onrender.com",
       "description": "Production Server"
     },
-
     {
       "url": "http://localhost:3000",
       "description": "Local Development Server"
@@ -27,7 +26,25 @@
         "type": "apiKey",
         "in": "header",
         "name": "x-csrf-token",
-        "description": "CSRF token required for state-changing operations. Automatically injected from cookies by the Swagger request interceptor."
+        "description": "CSRF token required for state-changing operations. Automatically injected from cookies by Swagger request interceptor."
+      }
+    },
+    "schemas": {
+      "Task": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer", "example": 1 },
+          "user_id": { "type": "string", "format": "uuid" },
+          "title": { "type": "string", "example": "Complete API integration" },
+          "description": { "type": "string", "nullable": true, "example": "Implement unit and integration tests." },
+          "is_complete": { "type": "boolean", "example": false },
+          "priority": { "type": "string", "enum": ["low", "medium", "high", "urgent"], "example": "high" },
+          "due_date": { "type": "string", "format": "date-time", "nullable": true, "example": "2026-12-31T23:59:59Z" },
+          "tags": { "type": "array", "items": { "type": "string" }, "example": ["backend", "urgent"] },
+          "deleted_at": { "type": "string", "format": "date-time", "nullable": true },
+          "created_at": { "type": "string", "format": "date-time" },
+          "updated_at": { "type": "string", "format": "date-time" }
+        }
       }
     }
   },
@@ -56,33 +73,24 @@
                 "type": "object",
                 "required": ["email", "password"],
                 "properties": {
-                  "email": {
-                    "type": "string",
-                    "example": "user@example.com"
-                  },
-                  "password": {
-                    "type": "string",
-                    "example": "securepassword123"
-                  }
+                  "email": { "type": "string", "example": "user@example.com" },
+                  "password": { "type": "string", "example": "securepassword123" }
                 }
               }
             }
           }
         },
         "responses": {
-          "201": {
-            "description": "User created successfully"
-          },
-          "400": {
-            "description": "Bad Request (e.g., missing email/password or password too short)"
-          }
+          "201": { "description": "User created successfully" },
+          "400": { "description": "Bad Request (e.g., missing email/password or password too short)" },
+          "429": { "description": "Too many requests (Rate limit exceeded)" }
         }
       }
     },
     "/auth/login": {
       "post": {
         "tags": ["Authentication"],
-        "summary": "Authenticate & return a JWT",
+        "summary": "Authenticate & return session cookies",
         "description": "On success, sets access_token, refresh_token, and csrf_token cookies.",
         "requestBody": {
           "required": true,
@@ -92,49 +100,30 @@
                 "type": "object",
                 "required": ["email", "password"],
                 "properties": {
-                  "email": {
-                    "type": "string",
-                    "example": "user@example.com"
-                  },
-                  "password": {
-                    "type": "string",
-                    "example": "securepassword123"
-                  }
+                  "email": { "type": "string", "example": "user@example.com" },
+                  "password": { "type": "string", "example": "securepassword123" }
                 }
               }
             }
           }
         },
         "responses": {
-          "200": {
-            "description": "Authenticated successfully, sets session cookies"
-          },
-          "400": {
-            "description": "Bad Request (missing fields)"
-          },
-          "401": {
-            "description": "Invalid login credentials"
-          }
+          "200": { "description": "Authenticated successfully, sets session cookies" },
+          "400": { "description": "Bad Request (missing fields)" },
+          "401": { "description": "Invalid login credentials" },
+          "429": { "description": "Rate limit exceeded" }
         }
       }
     },
     "/auth/logout": {
       "post": {
         "tags": ["Authentication"],
-        "summary": "End the user's session",
-        "security": [
-          {
-            "bearerAuth": [],
-            "csrfAuth": []
-          }
-        ],
+        "summary": "End the user session",
+        "description": "Revokes access token by adding to Redis blacklist and clears all cookies.",
+        "security": [{ "bearerAuth": [], "csrfAuth": [] }],
         "responses": {
-          "204": {
-            "description": "No Content (Logged out successfully)"
-          },
-          "401": {
-            "description": "Access token required or invalid"
-          }
+          "204": { "description": "Logged out successfully" },
+          "401": { "description": "Access token required, invalid, or already revoked" }
         }
       }
     },
@@ -142,50 +131,33 @@
       "post": {
         "tags": ["Authentication"],
         "summary": "Refresh an expired access token",
-        "description": "Exchanges a valid, long-lived refresh token for a new access token and refresh token pair to maintain an active user session.",
-        "security": [
-          {
-            "csrfAuth": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Session refreshed successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "access_token": {
-                      "type": "string",
-                      "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-                    },
-                    "refresh_token": {
-                      "type": "string",
-                      "example": "vw6dfkdcfqfq"
-                    }
-                  }
+        "security": [{ "csrfAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["refresh_token"],
+                "properties": {
+                  "refresh_token": { "type": "string", "example": "valid_refresh_token_string" }
                 }
               }
             }
-          },
-          "400": {
-            "description": "Bad Request (Refresh token is missing from the payload)"
-          },
-          "401": {
-            "description": "Unauthorized (Invalid or expired refresh token)"
           }
+        },
+        "responses": {
+          "200": { "description": "Session refreshed successfully" },
+          "401": { "description": "Invalid or expired refresh token" }
         }
       }
     },
     "/user/public": {
       "get": {
         "tags": ["User Context"],
-        "summary": "Read public, open data",
+        "summary": "Read public data",
         "responses": {
-          "200": {
-            "description": "Welcome message returned"
-          }
+          "200": { "description": "Welcome message returned" }
         }
       }
     },
@@ -193,18 +165,10 @@
       "get": {
         "tags": ["User Context"],
         "summary": "Read private profile data",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
+        "security": [{ "bearerAuth": [] }],
         "responses": {
-          "200": {
-            "description": "User metadata retrieved successfully"
-          },
-          "401": {
-            "description": "Invalid or expired token"
-          }
+          "200": { "description": "User metadata retrieved successfully" },
+          "401": { "description": "Invalid, expired, or revoked token" }
         }
       }
     },
@@ -212,73 +176,29 @@
       "get": {
         "tags": ["Tasks"],
         "summary": "Get all tasks for the authenticated user",
-        "description": "Retrieve a list of the current user's tasks. Supports filtering, searching, and pagination.",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
+        "description": "Retrieve user's tasks with simultaneous multi-field filtering, full search, sorting, and pagination.",
+        "security": [{ "bearerAuth": [] }],
         "parameters": [
-          {
-            "name": "isComplete",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "boolean"
-            },
-            "description": "Filter tasks by completion status"
-          },
-          {
-            "name": "search",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string"
-            },
-            "description": "Search tasks by title or description"
-          },
-          {
-            "name": "limit",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "minimum": 1
-            },
-            "description": "Maximum number of tasks to return (for pagination)"
-          },
-          {
-            "name": "offset",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "minimum": 0
-            },
-            "description": "Number of tasks to skip before returning results (for pagination)"
-          }
+          { "name": "search", "in": "query", "schema": { "type": "string" }, "description": "Fuzzy text search in title or description" },
+          { "name": "isComplete", "in": "query", "schema": { "type": "boolean" }, "description": "Filter by completion status" },
+          { "name": "priority", "in": "query", "schema": { "type": "string", "enum": ["low", "medium", "high", "urgent"] } },
+          { "name": "tag", "in": "query", "schema": { "type": "string" }, "description": "Filter tasks containing specific tag" },
+          { "name": "status", "in": "query", "schema": { "type": "string", "enum": ["all", "completed", "pending", "overdue"] } },
+          { "name": "sortBy", "in": "query", "schema": { "type": "string", "enum": ["created_at", "updated_at", "due_date", "priority", "title"], "default": "updated_at" } },
+          { "name": "sortOrder", "in": "query", "schema": { "type": "string", "enum": ["asc", "desc"], "default": "desc" } },
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 20, "minimum": 1, "maximum": 100 } },
+          { "name": "offset", "in": "query", "schema": { "type": "integer", "default": 0, "minimum": 0 } },
+          { "name": "includeDeleted", "in": "query", "schema": { "type": "boolean", "default": false }, "description": "Include soft-deleted tasks" }
         ],
         "responses": {
-          "200": {
-            "description": "List of tasks retrieved successfully"
-          },
-          "401": {
-            "description": "Access token required or invalid"
-          },
-          "404": {
-            "description": "No tasks found"
-          }
+          "200": { "description": "Tasks retrieved successfully with pagination details" },
+          "401": { "description": "Access token required or invalid" }
         }
       },
       "post": {
         "tags": ["Tasks"],
         "summary": "Create a new task",
-        "security": [
-          {
-            "bearerAuth": [],
-            "csrfAuth": []
-          }
-        ],
+        "security": [{ "bearerAuth": [], "csrfAuth": [] }],
         "requestBody": {
           "required": true,
           "content": {
@@ -287,29 +207,50 @@
                 "type": "object",
                 "required": ["title"],
                 "properties": {
-                  "title": {
-                    "type": "string",
-                    "example": "Complete API integration"
-                  },
-                  "description": {
-                    "type": "string",
-                    "example": "Finalize the SQLite endpoints before migrating to Postgres."
-                  }
+                  "title": { "type": "string", "example": "Complete API integration" },
+                  "description": { "type": "string", "example": "Finalize PostgreSQL tests." },
+                  "priority": { "type": "string", "enum": ["low", "medium", "high", "urgent"], "default": "medium" },
+                  "dueDate": { "type": "string", "format": "date-time", "example": "2026-12-31T23:59:59Z" },
+                  "tags": { "type": "array", "items": { "type": "string" }, "example": ["backend", "api"] }
                 }
               }
             }
           }
         },
         "responses": {
-          "201": {
-            "description": "Task created successfully"
-          },
-          "400": {
-            "description": "Please provide a valid title"
-          },
-          "401": {
-            "description": "Access token required or invalid"
+          "201": { "description": "Task created successfully" },
+          "400": { "description": "Validation error" }
+        }
+      }
+    },
+    "/tasks/bulk": {
+      "post": {
+        "tags": ["Tasks"],
+        "summary": "Perform bulk operations on multiple tasks",
+        "security": [{ "bearerAuth": [], "csrfAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["taskIds", "action"],
+                "properties": {
+                  "taskIds": { "type": "array", "items": { "type": "integer" }, "example": [1, 2, 3] },
+                  "action": {
+                    "type": "string",
+                    "enum": ["complete", "incomplete", "delete", "permanent_delete", "restore", "set_priority"],
+                    "example": "complete"
+                  },
+                  "priority": { "type": "string", "enum": ["low", "medium", "high", "urgent"], "description": "Required if action is set_priority" }
+                }
+              }
+            }
           }
+        },
+        "responses": {
+          "200": { "description": "Bulk operation executed successfully" },
+          "400": { "description": "Validation error" }
         }
       }
     },
@@ -317,52 +258,10 @@
       "get": {
         "tags": ["Tasks"],
         "summary": "Get task statistics for the authenticated user",
-        "description": "Retrieve aggregated statistics including total, completed, and pending tasks for the current user.",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
+        "description": "Returns counts for total, complete, pending, overdue, urgent_pending, high_pending, and deleted tasks.",
+        "security": [{ "bearerAuth": [] }],
         "responses": {
-          "200": {
-            "description": "Task statistics retrieved successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "string",
-                      "example": "success"
-                    },
-                    "data": {
-                      "type": "object",
-                      "properties": {
-                        "total": {
-                          "type": "integer",
-                          "example": 3
-                        },
-                        "complete": {
-                          "type": "integer",
-                          "example": 2
-                        },
-                        "pending": {
-                          "type": "integer",
-                          "example": 1
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Access token required or invalid"
-          },
-          "500": {
-            "description": "Failed to compute database statistics"
-          }
+          "200": { "description": "Task statistics retrieved successfully" }
         }
       }
     },
@@ -370,56 +269,22 @@
       "get": {
         "tags": ["Tasks"],
         "summary": "Get a single task by ID",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
+        "security": [{ "bearerAuth": [] }],
         "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer"
-            },
-            "description": "The task ID"
-          }
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } },
+          { "name": "includeDeleted", "in": "query", "schema": { "type": "boolean", "default": false } }
         ],
         "responses": {
-          "200": {
-            "description": "Task retrieved successfully"
-          },
-          "400": {
-            "description": "Invalid ID format provided"
-          },
-          "401": {
-            "description": "Access token required or invalid"
-          },
-          "404": {
-            "description": "No task was found with ID"
-          }
+          "200": { "description": "Task retrieved successfully" },
+          "404": { "description": "Task not found" }
         }
       },
       "put": {
         "tags": ["Tasks"],
         "summary": "Update an existing task",
-        "security": [
-          {
-            "bearerAuth": [],
-            "csrfAuth": []
-          }
-        ],
+        "security": [{ "bearerAuth": [], "csrfAuth": [] }],
         "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer"
-            },
-            "description": "The task ID"
-          }
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
         ],
         "requestBody": {
           "required": true,
@@ -428,84 +293,101 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "title": {
-                    "type": "string",
-                    "example": "Updated Task Title"
-                  },
-                  "description": {
-                    "type": "string",
-                    "example": "Updated details for the task."
-                  },
-                  "isComplete": {
-                    "type": "boolean",
-                    "example": true
-                  }
+                  "title": { "type": "string" },
+                  "description": { "type": "string", "nullable": true },
+                  "isComplete": { "type": "boolean" },
+                  "priority": { "type": "string", "enum": ["low", "medium", "high", "urgent"] },
+                  "dueDate": { "type": "string", "format": "date-time", "nullable": true },
+                  "tags": { "type": "array", "items": { "type": "string" } }
                 }
               }
             }
           }
         },
         "responses": {
-          "200": {
-            "description": "Task updated successfully"
-          },
-          "400": {
-            "description": "Invalid ID format or missing fields"
-          },
-          "401": {
-            "description": "Access token required or invalid"
-          },
-          "404": {
-            "description": "No task was found with ID"
-          }
+          "200": { "description": "Task updated successfully" },
+          "400": { "description": "Validation error" },
+          "404": { "description": "Task not found" }
         }
       },
       "delete": {
         "tags": ["Tasks"],
-        "summary": "Delete a task by ID",
-        "security": [
-          {
-            "bearerAuth": [],
-            "csrfAuth": []
-          }
-        ],
+        "summary": "Delete a task by ID (soft delete by default)",
+        "security": [{ "bearerAuth": [], "csrfAuth": [] }],
         "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer"
-            },
-            "description": "The task ID"
-          }
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } },
+          { "name": "permanent", "in": "query", "schema": { "type": "boolean", "default": false }, "description": "Hard delete permanently from database" }
         ],
         "responses": {
-          "200": {
-            "description": "Task deleted successfully"
-          },
-          "400": {
-            "description": "Invalid ID format provided"
-          },
-          "401": {
-            "description": "Access token required or invalid"
-          },
-          "404": {
-            "description": "No task was found with ID"
-          }
+          "200": { "description": "Task deleted successfully" },
+          "404": { "description": "Task not found" }
+        }
+      }
+    },
+    "/tasks/{id}/restore": {
+      "post": {
+        "tags": ["Tasks"],
+        "summary": "Restore a soft-deleted task",
+        "security": [{ "bearerAuth": [], "csrfAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": { "description": "Task restored successfully" },
+          "404": { "description": "Task not found or not in trash" }
         }
       }
     },
     "/health": {
       "get": {
         "tags": ["Meta"],
-        "summary": "Server health check",
+        "summary": "Comprehensive server & subsystem health check",
         "responses": {
           "200": {
-            "description": "Server is up and running"
+            "description": "Server, database, and Redis are fully operational",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string", "example": "healthy" },
+                    "timestamp": { "type": "string" },
+                    "uptime": { "type": "string", "example": "120s" },
+                    "environment": { "type": "string", "example": "development" },
+                    "memory": {
+                      "type": "object",
+                      "properties": {
+                        "rssMb": { "type": "number" },
+                        "heapUsedMb": { "type": "number" },
+                        "heapTotalMb": { "type": "number" }
+                      }
+                    },
+                    "services": {
+                      "type": "object",
+                      "properties": {
+                        "database": {
+                          "type": "object",
+                          "properties": {
+                            "status": { "type": "string", "example": "up" },
+                            "latencyMs": { "type": "number", "example": 2 }
+                          }
+                        },
+                        "redis": {
+                          "type": "object",
+                          "properties": {
+                            "status": { "type": "string", "example": "up" },
+                            "latencyMs": { "type": "number", "example": 1 }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
           },
-          "500": {
-            "description": "Database health check failed"
+          "503": {
+            "description": "One or more required subsystems are degraded or down"
           }
         }
       }
