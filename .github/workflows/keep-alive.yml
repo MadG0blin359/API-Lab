@@ -1,0 +1,28 @@
+name: Keep-Alive & Prevent Supabase Pause
+
+on:
+  schedule:
+    # Runs twice every day (at 06:00 UTC and 18:00 UTC)
+    - cron: '0 6,18 * * *'
+  # Allows manually triggering the ping from the GitHub Actions tab anytime
+  workflow_dispatch:
+
+jobs:
+  ping-api:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Readiness Probe (Wakes Render & Resets Supabase Inactivity)
+        run: |
+          echo "Sending keep-alive ping to Render & Supabase..."
+          # Render free instances can take up to 60s to wake from cold sleep
+          HTTP_STATUS=$(curl -s -o response.json -w "%{http_code}" --max-time 90 https://api-lab-media-processing-api.onrender.com/ready)
+          
+          echo "HTTP Status Code: $HTTP_STATUS"
+          echo "Response Body:"
+          cat response.json
+          
+          if [ "$HTTP_STATUS" -eq 200 ]; then
+            echo "✅ Successfully pinged API! Supabase database and storage are active."
+          else
+            echo "⚠️ Non-200 status code received ($HTTP_STATUS). Check response above."
+          fi
