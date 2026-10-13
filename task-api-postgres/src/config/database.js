@@ -12,10 +12,10 @@ const db = new Pool({
   connectionTimeoutMillis: 30000,
 });
 
-db.connect()
+db.query("SELECT 1")
   .then(() =>
-    console.log("✅ Successfully connected to PostgreSQL Docker container."),
+    console.log("✅ Successfully connected to PostgreSQL database."),
   )
-  .catch((err) => console.error("❌ Database connection error", err.stack));
+  .catch((err) => console.error("❌ Database connection error:", err.message));
 
 export default db;

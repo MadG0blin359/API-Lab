@@ -60,15 +60,19 @@ export const refreshSession = asyncHandler(async (req, res) => {
   const { refresh_token } = req.body;
   const { error, data } = await supabase.auth.refreshSession({ refresh_token });
 
-  if (!error || !data.session) {
-    throw new AppError(401, "Invalid or expired refresh token");
+  if (error || !data?.session) {
+    throw new AppError(401, error?.message || "Invalid or expired refresh token");
   }
 
-  setSessionDetails(res, data);
+  setSessionCookies(res, data);
 
   return res.status(200).json({
     status: "success",
     message: "Session Refresh Successful",
+    data: {
+      access_token: data.session.access_token,
+      refresh_token: data.session.refresh_token,
+    },
   });
 });
 

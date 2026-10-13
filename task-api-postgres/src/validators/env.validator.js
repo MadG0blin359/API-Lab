@@ -1,20 +1,28 @@
 const validateEnv = () => {
-  const requiredVariables = [
+  const baseRequired = [
     "NODE_ENV",
     "POSTGRES_USER",
     "POSTGRES_PASSWORD",
     "POSTGRES_DB",
     "DB_HOST",
     "DB_PORT",
-    "DB_POOL_MAX",
-    "PGB_MAX_CLIENT_CONN",
-    "PGB_DEFAULT_POOL_SIZE",
-    /* "REDIS_HOST",
-     "REDIS_PORT", */
-    "REDIS_URL",
+    "CSRF_SECRET",
+    "SUPABASE_URL",
+    "SUPABASE_PUB_KEY",
   ];
 
-  const missing = requiredVariables.filter((key) => !process.env[key]);
+  const missing = baseRequired.filter((key) => !process.env[key]);
+
+  // Validate Redis configuration depending on environment
+  if (process.env.NODE_ENV === "production" && !process.env.REDIS_URL) {
+    missing.push("REDIS_URL (required in production)");
+  } else if (
+    process.env.NODE_ENV !== "production" &&
+    !process.env.REDIS_URL &&
+    (!process.env.REDIS_HOST || !process.env.REDIS_PORT)
+  ) {
+    missing.push("REDIS_HOST and REDIS_PORT (or REDIS_URL)");
+  }
 
   if (missing.length > 0) {
     throw new Error(
