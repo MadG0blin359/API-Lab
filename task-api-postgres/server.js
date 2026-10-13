@@ -1,23 +1,26 @@
 import createApp from "./src/app.js";
 import validateEnv from "./src/validators/env.validator.js";
 import redisClient from "./src/config/redis.client.js";
+import db from "./src/config/database.js";
+import { initializeDatabase } from "./src/config/init.db.js";
 
 // Global Synchronous Code Error Handler
 process.on("uncaughtException", (err) => {
   console.log("UNCAUGHT EXCEPTION! 💥 Shutting down...");
   console.log(`${err.name}: ${err.message}`);
-  // Shutdown immediately
   process.exit(1);
 });
 
-// Declare server in the outer scope for the unhandledRejection handler
 let server;
 
-// The asynchronous bootstrap sequence
+// Asynchronous bootstrap sequence
 async function bootstrap() {
   try {
     console.log("🔍 Verifying environment variables...");
     validateEnv();
+
+    console.log("🛠️ Initializing database schema...");
+    await initializeDatabase();
 
     await redisClient.connect();
     const pingResponse = await redisClient.ping();
@@ -31,7 +34,7 @@ async function bootstrap() {
       console.log(
         `🚀 Server is running in ${process.env.NODE_ENV} mode on port ${PORT}...`,
       );
-      let url =
+      const url =
         process.env.NODE_ENV === "production"
           ? "https://api-lab-kiw8.onrender.com/"
           : `http://localhost:${PORT}/docs`;
@@ -47,12 +50,38 @@ async function bootstrap() {
 // Execute the bootstrap sequence
 bootstrap();
 
+// Graceful shutdown helper
+async function gracefulShutdown(signal) {
+  console.log(`\n🛑 Received ${signal}. Starting graceful shutdown...`);
+  if (server) {
+    server.close(async () => {
+      console.log("🔌 HTTP server closed.");
+      try {
+        if (redisClient.isOpen) {
+          await redisClient.disconnect();
+          console.log("🔌 Redis client disconnected.");
+        }
+        await db.end();
+        console.log("🔌 PostgreSQL connection pool closed.");
+      } catch (err) {
+        console.error("Error during graceful shutdown:", err.message);
+      } finally {
+        process.exit(0);
+      }
+    });
+  } else {
+    process.exit(0);
+  }
+}
+
+process.on("SIGINT", () => gracefulShutdown("SIGINT"));
+process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
+
 // Global Asynchronous Code Error Handler
 process.on("unhandledRejection", (err) => {
   console.log("UNHANDLED REJECTION! 💥 Shutting down...");
   console.log(`${err.name}: ${err.message}`);
 
-  // Verify the server exists before attempting to close it
   if (server) {
     server.close(() => {
       process.exit(1);

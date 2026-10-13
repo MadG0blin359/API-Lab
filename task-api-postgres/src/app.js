@@ -1,4 +1,5 @@
-import express, { json } from "express";
+import express from "express";
+import helmet from "helmet";
 import compression from "compression";
 import cookieParser from "cookie-parser";
 import cors from "cors";
@@ -11,11 +12,24 @@ import globalErrorHandler from "./middlewares/error.handler.js";
 
 import setupSwagger from "./utils/swagger.ui.js";
 import { validateCsrfToken } from "./middlewares/csrf.middleware.js";
+import { generalApiLimiter } from "./middlewares/rate.limit.middleware.js";
 
 function createApp() {
   const app = express();
-  app.use(express.json());
-  app.use(express.urlencoded({ extended: true }));
+
+  // Enforce HTTP Security Headers
+  app.use(
+    helmet({
+      contentSecurityPolicy: false, // Disabled to allow Swagger UI resources and inline styles
+      crossOriginEmbedderPolicy: false,
+    }),
+  );
+
+  // Apply general rate limiting across all endpoints
+  app.use(generalApiLimiter);
+
+  app.use(express.json({ limit: "10kb" }));
+  app.use(express.urlencoded({ extended: true, limit: "10kb" }));
   app.use(cookieParser());
 
   // Verify the Signed Double-Submit Cookie
@@ -47,7 +61,7 @@ function createApp() {
         }
       },
       credentials: true,
-      methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+      methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
       allowedHeaders: ["Content-Type", "Accept", "x-csrf-token"],
     }),
   );

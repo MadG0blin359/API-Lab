@@ -8,6 +8,7 @@ import {
 import * as authMiddleware from "../middlewares/authenticate.user.js";
 import { logout } from "../controllers/user.controller.js";
 import { attachCsrfToken } from "../middlewares/csrf.middleware.js";
+import { authRateLimiter } from "../middlewares/rate.limit.middleware.js";
 
 const router = Router();
 
@@ -15,14 +16,22 @@ router
   .get("/csrf", attachCsrfToken, authController.sendCsrfToken)
   .post(
     "/signup",
+    authRateLimiter,
     validateEmailPassword,
     attachCsrfToken,
     authController.signup,
   )
-  .post("/login", validateEmailPassword, attachCsrfToken, authController.login)
+  .post(
+    "/login",
+    authRateLimiter,
+    validateEmailPassword,
+    attachCsrfToken,
+    authController.login,
+  )
   .post("/logout", validateAccessToken, authMiddleware.authenticateUser, logout)
   .post(
     "/refresh",
+    authRateLimiter,
     validateRefreshToken,
     attachCsrfToken,
     authController.refreshSession,
