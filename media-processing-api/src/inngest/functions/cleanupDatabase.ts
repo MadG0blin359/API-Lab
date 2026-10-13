@@ -46,8 +46,26 @@ export const cleanupDatabaseJob = inngestClient.createFunction(
       const pathsToDelete: string[] = [];
 
       for (const job of expiredJobs) {
-        // Add processed file path
+        // Handle legacy single file or structured variant JSON
+        if (job.result_url) {
+          try {
+            const parsed = JSON.parse(job.result_url);
+            if (parsed.variants && typeof parsed.variants === "object") {
+              for (const variant of Object.values(parsed.variants) as Array<{ path: string }>) {
+                if (variant.path) pathsToDelete.push(variant.path);
+              }
+            }
+          } catch {
+            // Raw path format fallback
+            pathsToDelete.push(job.result_url);
+          }
+        }
+
+        // Also add direct jobId wildcards
         pathsToDelete.push(`${PROCESSED_FOLDER}/${job.id}.webp`);
+        pathsToDelete.push(`${PROCESSED_FOLDER}/${job.id}-thumbnail.webp`);
+        pathsToDelete.push(`${PROCESSED_FOLDER}/${job.id}-medium.webp`);
+        pathsToDelete.push(`${PROCESSED_FOLDER}/${job.id}-full.webp`);
       }
 
       // Best-effort list and clean incoming folder for matching files

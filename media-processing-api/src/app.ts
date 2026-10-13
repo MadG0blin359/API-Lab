@@ -8,12 +8,43 @@ import globalErrorHandler from "./middlewares/error.handler.js";
 import setupSwagger from "./utils/swagger.ui.js";
 import { inngestClient } from "./inngest/client.js";
 import { functions } from "./inngest/index.js";
+import { supabase } from "./utils/supabase.js";
+import { SUPABASE_BUCKET } from "./config/constants.js";
+import { register, httpRequestDurationMicroseconds, httpRequestsTotal } from "./utils/metrics.js";
 
 import type { Express, Request, Response } from "express";
 
 function createApp() {
   const app: Express = express();
   app.use(express.json());
+
+  // Prometheus HTTP metrics instrumentation middleware
+  app.use((req: Request, res: Response, next) => {
+    const start = process.hrtime();
+
+    res.on("finish", () => {
+      const diff = process.hrtime(start);
+      const durationSeconds = diff[0] + diff[1] / 1e9;
+      const route = req.route?.path || req.path || "unknown";
+
+      httpRequestsTotal.inc({
+        method: req.method,
+        route,
+        status_code: res.statusCode.toString(),
+      });
+
+      httpRequestDurationMicroseconds.observe(
+        {
+          method: req.method,
+          route,
+          status_code: res.statusCode.toString(),
+        },
+        durationSeconds,
+      );
+    });
+
+    next();
+  });
 
   app.use(compression());
 
@@ -26,6 +57,73 @@ function createApp() {
         : undefined,
     ),
   );
+
+  // ─── Health & Readiness Probes ────────────────────────────────
+  /**
+   * Liveness Probe: Quick check if Node process is alive.
+   */
+  app.get("/health", (req: Request, res: Response) => {
+    res.status(200).json({
+      status: "healthy",
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+    });
+  });
+
+  /**
+   * Readiness Probe: Deep check verifying Supabase DB and Storage bucket reachability.
+   */
+  app.get("/ready", async (req: Request, res: Response) => {
+    try {
+      // 1. Verify Database connectivity
+      const { error: dbError } = await supabase
+        .from("media_jobs")
+        .select("id")
+        .limit(1);
+
+      // 2. Verify Storage bucket access
+      const { error: storageError } = await supabase.storage
+        .from(SUPABASE_BUCKET)
+        .list("", { limit: 1 });
+
+      if (dbError || storageError) {
+        return res.status(503).json({
+          status: "unhealthy",
+          checks: {
+            database: dbError ? `Failed: ${dbError.message}` : "healthy",
+            storage: storageError ? `Failed: ${storageError.message}` : "healthy",
+          },
+          timestamp: new Date().toISOString(),
+        });
+      }
+
+      return res.status(200).json({
+        status: "ready",
+        checks: {
+          database: "healthy",
+          storage: "healthy",
+        },
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      return res.status(503).json({
+        status: "unhealthy",
+        error: error instanceof Error ? error.message : "Unknown error",
+        timestamp: new Date().toISOString(),
+      });
+    }
+  });
+
+  // ─── Prometheus Metrics Endpoint ──────────────────────────────
+  app.get("/metrics", async (req: Request, res: Response) => {
+    try {
+      res.setHeader("Content-Type", register.contentType);
+      const metrics = await register.metrics();
+      res.end(metrics);
+    } catch (err) {
+      res.status(500).end(err instanceof Error ? err.message : "Metrics error");
+    }
+  });
 
   // ─── API Documentation ────────────────────────────────────────
   setupSwagger(app);
