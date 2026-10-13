@@ -16,10 +16,10 @@ export const IMAGE_VARIANTS = {
 
 export const WEBP_QUALITY = 80;
 
-// ─── Inngest Worker Limits ──────────────────────────────────────
-export const INNGEST_CONCURRENCY_LIMIT = Number(process.env.INNGEST_CONCURRENCY_LIMIT || 5);
+// ─── Inngest Worker Limits (Optimized for Free Tier: 512MB RAM) ──
+export const INNGEST_CONCURRENCY_LIMIT = Number(process.env.INNGEST_CONCURRENCY_LIMIT || 1);
 export const INNGEST_RATE_LIMIT = Number(process.env.INNGEST_RATE_LIMIT || 30); // 30 jobs per minute
 
-// ─── Cleanup ────────────────────────────────────────────────────
+// ─── Cleanup (Conserves Inngest Free Tier Steps) ──────────────────
 export const CLEANUP_MAX_AGE_HOURS = 24;
-export const CLEANUP_CRON_EXPRESSION = "0 * * * *"; // Every hour
+export const CLEANUP_CRON_EXPRESSION = process.env.CLEANUP_CRON_EXPRESSION || "0 */12 * * *"; // Runs every 12 hours
