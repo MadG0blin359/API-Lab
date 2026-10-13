@@ -7,8 +7,12 @@
   },
   "servers": [
     {
+      "url": "https://api-lab-media-processing-api.onrender.com",
+      "description": "Production (Render)"
+    },
+    {
       "url": "http://localhost:3000",
-      "description": "Local server"
+      "description": "Local development server"
     }
   ],
   "paths": {

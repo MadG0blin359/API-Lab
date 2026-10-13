@@ -2,13 +2,28 @@
 
 > Production-grade, asynchronous asset optimization pipeline built with **Express 5**, **TypeScript**, **Supabase Storage & PostgreSQL**, **Sharp**, and **Inngest**.
 
+[![Render](https://img.shields.io/badge/Deployed%20on-Render-46E3B7?style=flat&logo=render&logoColor=white)](https://api-lab-media-processing-api.onrender.com/)
+[![Swagger Docs](https://img.shields.io/badge/API%20Docs-Swagger%20UI-85EA2D?style=flat&logo=swagger&logoColor=black)](https://api-lab-media-processing-api.onrender.com/docs)
+[![Health Status](https://img.shields.io/badge/Health%20Check-Live-green?style=flat)](https://api-lab-media-processing-api.onrender.com/health)
+
+---
+
+## 🌐 Live Production Deployment
+
+The API is deployed on **Render**:
+* **Live Base URL**: [`https://api-lab-media-processing-api.onrender.com`](https://api-lab-media-processing-api.onrender.com)
+* **Interactive Swagger UI**: [`https://api-lab-media-processing-api.onrender.com/docs`](https://api-lab-media-processing-api.onrender.com/docs)
+* **Health / Liveness Probe**: [`https://api-lab-media-processing-api.onrender.com/health`](https://api-lab-media-processing-api.onrender.com/health)
+* **Readiness Probe**: [`https://api-lab-media-processing-api.onrender.com/ready`](https://api-lab-media-processing-api.onrender.com/ready)
+* **Prometheus Metrics**: [`https://api-lab-media-processing-api.onrender.com/metrics`](https://api-lab-media-processing-api.onrender.com/metrics)
+
 ---
 
 ## 📖 Overview
 
 The **Media Processing API** is an event-driven asset processing backend designed to handle CPU-heavy transformations off the main Node.js V8 thread:
 
-1. **The Fast Door (O(1) Request Ingestion)**: Ingests image payloads via `multipart/form-data`, validates magic bytes, caches them in temporary storage, registers a `pending` job in PostgreSQL, dispatches an event to Inngest, and immediately returns `202 Accepted` with a tracking `jobId`.
+1. **The Fast Door (O(1) Request Ingestion)**: Ingests image payloads via standard `multipart/form-data` or **Zero-Memory Direct Presigned Uploads**, validates magic bytes, caches in temporary storage, registers a `pending` job in PostgreSQL, dispatches an event to Inngest, and immediately returns `202 Accepted` with a tracking `jobId`.
 2. **Durable Worker Pipelines**: Inngest step functions process the raw asset off-thread: stripping EXIF metadata, auto-orienting, generating responsive variants (`thumbnail`, `medium`, `full`), BlurHash strings, and LQIP data URLs.
 3. **Strict Security with Dynamic Signed URLs**: Assets in private Supabase buckets are accessible only via dynamically generated 1-hour signed URLs with HMAC tokens.
 4. **Real-Time Delivery (SSE)**: Clients can subscribe to `GET /api/media/:id/events` for instant status transitions without polling.
@@ -23,8 +38,10 @@ The **Media Processing API** is an event-driven asset processing backend designe
 flowchart TD
     Client["Client / Web Application"]
 
-    subgraph API["Express 5 REST API"]
+    subgraph API["Express 5 REST API (Render)"]
         Upload["POST /api/media/upload\n(10 req/min + Magic Bytes)"]
+        Presign["POST /api/media/presign-upload\n(Zero-Memory Direct Ingestion)"]
+        ProcessDirect["POST /api/media/process-direct"]
         Status["GET /api/media/:id\n(1h Signed URLs)"]
         SSE["GET /api/media/:id/events\n(Server-Sent Events)"]
         Health["GET /health & /ready"]
@@ -43,11 +60,18 @@ flowchart TD
         Cron["cleanupDatabaseJob\n(Hourly Cron: 0 * * * *)"]
     end
 
-    Client -->|"1. Upload image"| Upload
-    Upload -->|"2. Cache buffer to incoming/"| Storage
-    Upload -->|"3. Insert job (status: pending)"| DB
-    Upload -->|"4. Dispatch media/process.requested"| InngestWebhook
-    Upload -->|"5. Return 202 Accepted (jobId)"| Client
+    Client -->|"Standard multipart upload"| Upload
+    Client -->|"1. Request presigned upload URL"| Presign
+    Presign -->|"Return uploadUrl"| Client
+    Client -->|"2. Direct PUT to bucket (0 server RAM)"| Storage
+    Client -->|"3. Trigger background processing"| ProcessDirect
+
+    Upload -->|"Cache buffer to incoming/"| Storage
+    Upload -->|"Insert job (pending)"| DB
+    ProcessDirect -->|"Insert job (pending)"| DB
+
+    Upload -->|"Dispatch media/process.requested"| InngestWebhook
+    ProcessDirect -->|"Dispatch media/process.requested"| InngestWebhook
 
     InngestWebhook --> Worker
     Worker -->|"Download raw asset"| Storage
@@ -70,6 +94,7 @@ flowchart TD
 
 ## 🚀 Key Features
 
+* **Zero-Memory Direct Ingestion**: Clients can upload directly to Supabase Storage via `POST /api/media/presign-upload`, bypassing server RAM and network bandwidth entirely.
 * **Magic Byte MIME Validation**: Inspects actual binary header signatures (`file-type`) to reject disguised malicious files.
 * **Tiered Rate Limiting**:
   * Uploads restricted to **10 requests per minute per IP** (`express-rate-limit`).
@@ -98,6 +123,7 @@ flowchart TD
 * **Rate Limiting**: [express-rate-limit](https://github.com/express-rate-limit/express-rate-limit)
 * **Metrics**: [prom-client](https://github.com/siimon/prom-client)
 * **Documentation**: [Swagger UI Express](https://github.com/scottie1984/swagger-ui-express)
+* **Hosting**: [Render](https://render.com/)
 
 ---
 
@@ -108,6 +134,10 @@ media-processing-api/
 ├── openapi.json                  # OpenAPI 3.0 API specification
 ├── package.json
 ├── tsconfig.json
+├── Dockerfile                    # Production multi-stage Alpine Dockerfile
+├── docker-compose.yml            # Local container stack with Prometheus
+├── prometheus.yml                # Prometheus scraping configuration
+├── render.yaml                   # Render deployment blueprint
 ├── .env.example
 ├── README.md
 ├── src/
@@ -117,7 +147,7 @@ media-processing-api/
 │   │   ├── constants.ts         # Central configuration, variants, and Inngest limits
 │   │   └── schema.sql           # Database schema & indexes for Supabase
 │   ├── controllers/
-│   │   └── media.controller.ts  # Upload, status with signed variants, and SSE streaming
+│   │   └── media.controller.ts  # Upload, presigned upload, signed variants, and SSE
 │   ├── inngest/
 │   │   ├── client.ts            # Inngest SDK client
 │   │   ├── index.ts             # Function registry export
@@ -134,7 +164,7 @@ media-processing-api/
 │   │   └── media.routes.ts      # REST API route declarations
 │   ├── services/
 │   │   ├── media.service.ts     # Business logic & compensating rollback actions
-│   │   └── storage.service.ts   # Supabase Storage operations
+│   │   └── storage.service.ts   # Supabase Storage & presigned URLs
 │   ├── utils/
 │   │   ├── app.error.ts         # Operational error class
 │   │   ├── events.ts            # SSE event emitter manager
@@ -173,7 +203,7 @@ INNGEST_SIGNING_KEY=<your-inngest-signing-key>
 
 ---
 
-## 🏃 Running the Application
+## 🏃 Running Locally
 
 ### Development Server
 ```bash
@@ -197,9 +227,15 @@ npm start
 
 ## 📡 API Reference
 
+Base URLs:
+* **Production**: `https://api-lab-media-processing-api.onrender.com`
+* **Local**: `http://localhost:3000`
+
 | Method | Endpoint | Description |
 | :--- | :--- | :--- |
-| `POST` | `/api/media/upload` | Ingests image (10 req/min, magic bytes verified, returns 202) |
+| `POST` | `/api/media/upload` | Ingests image via Express buffer (10 req/min, magic bytes verified, returns 202) |
+| `POST` | `/api/media/presign-upload` | Generates signed upload URL for zero-memory direct client uploads |
+| `POST` | `/api/media/process-direct` | Notifies server to start background processing after direct upload |
 | `GET` | `/api/media/:id` | Polls status & dynamically returns 1-hour signed URLs for variants |
 | `GET` | `/api/media/:id/events` | Real-time Server-Sent Events (SSE) status stream |
 | `GET` | `/health` | Liveness probe (uptime, status) |
