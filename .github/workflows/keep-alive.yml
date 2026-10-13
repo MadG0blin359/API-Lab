@@ -2,8 +2,8 @@ name: Keep-Alive & Prevent Supabase Pause
 
 on:
   schedule:
-    # Runs twice every day (at 06:00 UTC and 18:00 UTC)
-    - cron: '0 6,18 * * *'
+    # Runs every 3 days at 12:00 UTC (safe buffer for Supabase 7-day inactivity pause)
+    - cron: '0 12 */3 * *'
   # Allows manually triggering the ping from the GitHub Actions tab anytime
   workflow_dispatch:
 
