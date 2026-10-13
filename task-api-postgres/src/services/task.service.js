@@ -2,117 +2,162 @@ import AppError from "../utils/app.error.js";
 import taskRepository from "../repositories/task.repository.js";
 
 class TaskService {
-  async getAllTasks(userId, reqOptions) {
-    const { is_complete, search, limit, offset } = reqOptions;
-    const isCompleteQuery = is_complete;
-    let dataArr;
+  async getAllTasks(userId, queryOptions = {}) {
+    // Normalize parameters
+    const isCompleteValue =
+      queryOptions.is_complete !== undefined
+        ? queryOptions.is_complete
+        : queryOptions.isComplete;
 
-    if (limit !== undefined && offset !== undefined) {
-      const limitNum = parseInt(limit, 10);
-      const offsetNum = parseInt(offset, 10);
+    const normalizedOptions = {
+      search: queryOptions.search,
+      is_complete: isCompleteValue,
+      priority: queryOptions.priority,
+      tag: queryOptions.tag,
+      status: queryOptions.status,
+      sortBy: queryOptions.sortBy || "updated_at",
+      sortOrder: queryOptions.sortOrder || "desc",
+      limit: queryOptions.limit !== undefined ? parseInt(queryOptions.limit, 10) : 20,
+      offset: queryOptions.offset !== undefined ? parseInt(queryOptions.offset, 10) : 0,
+      includeDeleted: queryOptions.includeDeleted === true || queryOptions.includeDeleted === "true",
+    };
 
-      // Validate that they are valid, non-negative numbers
-      if (
-        isNaN(limitNum) ||
-        isNaN(offsetNum) ||
-        limitNum <= 0 ||
-        offsetNum < 0
-      ) {
-        throw new AppError(400, "Limit must be > 0 and offset must be >= 0.");
-      }
+    const { tasks, total, limit, offset } = await taskRepository.findAll(
+      userId,
+      normalizedOptions,
+    );
 
-      dataArr = await taskRepository.paginate(userId, limitNum, offsetNum);
-    } else if (search !== undefined) {
-      if (typeof search !== "string" || search.trim() === "") {
-        throw new AppError(400, "Search query must be a valid string.");
-      }
-      dataArr = await taskRepository.search(userId, search.trim());
-    } else if (isCompleteQuery !== undefined) {
-      if (isCompleteQuery !== "true" && isCompleteQuery !== "false") {
-        throw new AppError(
-          400,
-          "The isComplete parameter must be 'true' or 'false'.",
-        );
-      }
-
-      const isCompleteBool = isCompleteQuery === "true";
-
-      dataArr = await taskRepository.findByStatus(userId, isCompleteBool);
-    } else {
-      dataArr = await taskRepository.findAll(userId);
-    }
-
-    if (!dataArr || dataArr.length === 0)
-      throw new AppError(404, "No tasks found!");
-
-    return dataArr;
+    return {
+      tasks,
+      pagination: {
+        total,
+        count: tasks.length,
+        limit,
+        offset,
+        totalPages: Math.ceil(total / limit) || 0,
+        page: Math.floor(offset / limit) + 1,
+      },
+    };
   }
 
-  async getTaskById(userId, id) {
-    const dataObj = await taskRepository.findById(userId, id);
-    if (!dataObj) throw new AppError(404, `No task was found with ID ${id}.`);
-
-    return dataObj;
+  async getTaskById(userId, id, includeDeleted = false) {
+    const task = await taskRepository.findById(userId, id, includeDeleted);
+    if (!task) {
+      throw new AppError(404, `No task was found with ID ${id}.`);
+    }
+    return task;
   }
 
   async getTaskStats(userId) {
     const stats = await taskRepository.getStats(userId);
-
     if (!stats) {
       throw new AppError(500, "Failed to compute database statistics.");
     }
-
     return stats;
   }
 
-  async createTask(userId, newTask) {
-    const { title, description = null } = newTask;
-    if (!title || typeof title !== "string" || title.trim() === "")
+  async createTask(userId, taskData) {
+    const { title, description = null, priority = "medium", tags = [] } = taskData;
+    const dueDate = taskData.due_date || taskData.dueDate || null;
+
+    if (!title || typeof title !== "string" || title.trim() === "") {
       throw new AppError(400, "Please provide a valid title.");
+    }
 
-    const taskData = {
-      title,
-      description,
-    };
-
-    return await taskRepository.create(userId, taskData);
+    return await taskRepository.create(userId, {
+      title: title.trim(),
+      description: description ? description.trim() : null,
+      priority,
+      due_date: dueDate,
+      tags: Array.isArray(tags) ? tags : [],
+    });
   }
 
   async updateTaskById(userId, id, taskData) {
-    const { title, description, is_complete } = taskData;
+    const updatePayload = {};
 
-    if (
-      title === undefined &&
-      description === undefined &&
-      is_complete === undefined
-    )
+    if (taskData.title !== undefined) {
+      updatePayload.title = taskData.title.trim();
+    }
+    if (taskData.description !== undefined) {
+      updatePayload.description = taskData.description !== null ? taskData.description.trim() : null;
+    }
+    if (taskData.is_complete !== undefined) {
+      updatePayload.is_complete = taskData.is_complete;
+    } else if (taskData.isComplete !== undefined) {
+      updatePayload.is_complete = taskData.isComplete;
+    }
+    if (taskData.priority !== undefined) {
+      updatePayload.priority = taskData.priority;
+    }
+    if (taskData.due_date !== undefined) {
+      updatePayload.due_date = taskData.due_date;
+    } else if (taskData.dueDate !== undefined) {
+      updatePayload.due_date = taskData.dueDate;
+    }
+    if (taskData.tags !== undefined) {
+      updatePayload.tags = Array.isArray(taskData.tags) ? taskData.tags : [];
+    }
+
+    if (Object.keys(updatePayload).length === 0) {
       throw new AppError(
         400,
-        "Please provide a title, description and/or is_complete status to update task.",
+        "Please provide at least one valid field to update.",
       );
+    }
 
-    const updatedTask = await taskRepository.update(userId, id, {
-      title,
-      description,
-      is_complete,
-    });
+    const updatedTask = await taskRepository.update(userId, id, updatePayload);
 
-    if (!updatedTask)
-      throw new AppError(404, `No task was found with ID ${id}.`);
+    if (!updatedTask) {
+      throw new AppError(404, `No active task was found with ID ${id}.`);
+    }
 
     return updatedTask;
   }
 
-  async deleteTaskById(userId, id) {
-    const result = await taskRepository.delete(userId, id);
-    if (!result) throw new AppError(404, `No task was found with ID ${id}.`);
-    return true;
+  async deleteTaskById(userId, id, permanent = false) {
+    if (permanent) {
+      const result = await taskRepository.permanentDelete(userId, id);
+      if (!result) throw new AppError(404, `No task was found with ID ${id}.`);
+      return { message: "Task permanently deleted." };
+    }
+
+    const result = await taskRepository.softDelete(userId, id);
+    if (!result) {
+      throw new AppError(404, `No active task was found with ID ${id}.`);
+    }
+    return { message: "Task moved to trash (soft deleted)." };
+  }
+
+  async restoreTaskById(userId, id) {
+    const task = await taskRepository.restore(userId, id);
+    if (!task) {
+      throw new AppError(404, `No deleted task was found with ID ${id} to restore.`);
+    }
+    return task;
+  }
+
+  async bulkTasks(userId, { taskIds, action, priority }) {
+    if (!Array.isArray(taskIds) || taskIds.length === 0) {
+      throw new AppError(400, "Please provide an array of task IDs.");
+    }
+
+    const updatedTasks = await taskRepository.bulkUpdate(
+      userId,
+      taskIds,
+      action,
+      priority,
+    );
+
+    return {
+      action,
+      affectedCount: updatedTasks.length,
+      tasks: updatedTasks,
+    };
   }
 
   async getHealth() {
-    const result = await taskRepository.health();
-    if (!result) throw new AppError(500, "Database health check failed.");
-    return true;
+    return await taskRepository.health();
   }
 }
 
