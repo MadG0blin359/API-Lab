@@ -52,17 +52,17 @@ export const processMediaJob = inngestClient.createFunction(
       });
 
       // Step 4: Upload the processed WebP to Supabase Storage
-      const publicUrl: string = await step.run("upload-processed", async () => {
+      const storageResultPath: string = await step.run("upload-processed", async () => {
         const outputBuffer = Buffer.from(processedBuffer);
-        const url = await storageService.uploadProcessed(outputBuffer, `${jobId}.webp`);
-        return url;
+        const storedPath = await storageService.uploadProcessed(outputBuffer, `${jobId}.webp`);
+        return storedPath;
       });
 
-      // Step 5: Mark the job as completed with the result URL
+      // Step 5: Mark the job as completed with the internal storage path
       await step.run("update-status-completed", async () => {
         await mediaRepository.updateJobStatus(jobId, {
           status: "completed",
-          result_url: publicUrl,
+          result_url: storageResultPath,
           updated_at: new Date().toISOString(),
         });
       });
@@ -72,7 +72,7 @@ export const processMediaJob = inngestClient.createFunction(
         await storageService.deleteFiles([storagePath]);
       });
 
-      return { jobId, status: "completed", resultUrl: publicUrl };
+      return { jobId, status: "completed", resultUrl: storageResultPath };
     } catch (error) {
       // On any failure, mark the job as failed with the error message
       const errorMessage = error instanceof Error ? error.message : "Unknown processing error";

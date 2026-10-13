@@ -34,7 +34,7 @@ export const storageService = {
 
   /**
    * Uploads a processed buffer to the processed folder.
-   * Returns the public URL.
+   * Returns the internal storage path.
    */
   async uploadProcessed(buffer: Buffer, filename: string) {
     const storagePath = `processed/${filename}`;
@@ -45,11 +45,7 @@ export const storageService = {
 
     if (error) throw error;
 
-    const { data: urlData } = supabase.storage
-      .from(SUPABASE_BUCKET)
-      .getPublicUrl(storagePath);
-
-    return urlData.publicUrl;
+    return storagePath;
   },
 
   /**
