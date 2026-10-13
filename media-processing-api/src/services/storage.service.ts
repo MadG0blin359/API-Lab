@@ -21,6 +21,29 @@ export const storageService = {
   },
 
   /**
+   * Generates a signed direct upload URL for client-side uploads.
+   * Eliminates server RAM/bandwidth usage for image uploads.
+   */
+  async createPresignedUpload(originalname: string) {
+    const safeFilename = `${crypto.randomUUID()}${path.extname(originalname)}`;
+    const storagePath = `${INCOMING_FOLDER}/${safeFilename}`;
+
+    const { data, error } = await supabase.storage
+      .from(SUPABASE_BUCKET)
+      .createSignedUploadUrl(storagePath);
+
+    if (error || !data) {
+      throw error || new Error("Failed to create signed upload URL");
+    }
+
+    return {
+      uploadUrl: data.signedUrl,
+      storagePath,
+      token: data.token,
+    };
+  },
+
+  /**
    * Downloads a file from Supabase Storage and returns its buffer.
    */
   async download(storagePath: string) {

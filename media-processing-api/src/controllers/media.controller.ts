@@ -71,6 +71,60 @@ export const uploadMedia = async (req: Request, res: Response, next: NextFunctio
   });
 };
 
+/**
+ * Step 1 of Direct-to-Storage Upload:
+ * Generates a presigned upload URL and storage path for the client to upload directly.
+ */
+export const presignUpload = async (req: Request, res: Response, next: NextFunction) => {
+  const { filename } = req.body as { filename?: string };
+  if (!filename || typeof filename !== "string") {
+    return next(new AppError(400, "Field 'filename' is required in request body."));
+  }
+
+  const { storageService } = await import("../services/storage.service.js");
+  const result = await storageService.createPresignedUpload(filename);
+
+  return res.status(200).json({
+    status: "success",
+    message: "Presigned direct upload URL generated successfully.",
+    data: {
+      uploadUrl: result.uploadUrl,
+      storagePath: result.storagePath,
+      token: result.token,
+    },
+  });
+};
+
+/**
+ * Step 2 of Direct-to-Storage Upload:
+ * Client notifies server after uploading file directly to Supabase Storage.
+ */
+export const processPresignedUpload = async (req: Request, res: Response, next: NextFunction) => {
+  const { storagePath, filename, mimetype } = req.body as {
+    storagePath?: string;
+    filename?: string;
+    mimetype?: string;
+  };
+
+  if (!storagePath || !filename) {
+    return next(new AppError(400, "Fields 'storagePath' and 'filename' are required."));
+  }
+
+  // Safety check: ensure path is within incoming folder
+  if (!storagePath.startsWith("incoming/")) {
+    return next(new AppError(400, "Invalid storagePath. Must reside inside 'incoming/'."));
+  }
+
+  const jobId = await mediaService.processDirectUpload(storagePath, filename, mimetype);
+  mediaUploadsTotal.inc({ status: "accepted" });
+
+  return res.status(202).json({
+    status: "success",
+    message: "Direct upload received. Background processing initiated.",
+    jobId,
+  });
+};
+
 export const getJobStatus = async (req: Request, res: Response, next: NextFunction) => {
   const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
   if (!id) {

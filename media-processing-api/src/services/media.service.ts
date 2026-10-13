@@ -49,6 +49,40 @@ export const mediaService = {
     return job.id;
   },
 
+  /**
+   * Enqueues an asset uploaded directly to Supabase via presigned upload URL.
+   * Consumes virtually 0 server RAM and 0 server upload bandwidth.
+   */
+  async processDirectUpload(storagePath: string, filename: string, mimetype?: string) {
+    // 1. Register the job in PostgreSQL
+    let job: { id: string };
+    try {
+      job = await mediaRepository.createJob(filename);
+    } catch (err) {
+      console.error("Database insert error:", err);
+      await storageService.deleteFiles([storagePath]);
+      throw new AppError(500, "Database insertion failed.");
+    }
+
+    // 2. Dispatch Inngest background optimization job
+    try {
+      await inngestClient.send({
+        name: "media/process.requested",
+        data: {
+          jobId: job.id,
+          storagePath,
+          mimetype: mimetype || "image/jpeg",
+        },
+      });
+    } catch (err) {
+      console.error("Inngest dispatch error:", err);
+      await storageService.deleteFiles([storagePath]);
+      throw new AppError(500, "Failed to dispatch processing job.");
+    }
+
+    return job.id;
+  },
+
   async getJobStatus(id: string) {
     // Validate UUID format
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

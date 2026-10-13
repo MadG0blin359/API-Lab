@@ -126,6 +126,89 @@
         }
       }
     },
+    "/api/media/presign-upload": {
+      "post": {
+        "summary": "Create presigned direct upload URL (Zero Server RAM)",
+        "description": "Generates a signed Supabase Storage URL allowing the client to upload files directly to the storage bucket, bypassing server memory entirely.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["filename"],
+                "properties": {
+                  "filename": { "type": "string", "example": "portrait.png" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Presigned upload URL generated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string", "example": "success" },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "uploadUrl": { "type": "string" },
+                        "storagePath": { "type": "string" },
+                        "token": { "type": "string" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "Filename is required" }
+        }
+      }
+    },
+    "/api/media/process-direct": {
+      "post": {
+        "summary": "Notify server after direct upload to storage",
+        "description": "Dispatches the background Inngest worker job after the client finishes uploading directly to Supabase Storage.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["storagePath", "filename"],
+                "properties": {
+                  "storagePath": { "type": "string", "example": "incoming/uuid.png" },
+                  "filename": { "type": "string", "example": "portrait.png" },
+                  "mimetype": { "type": "string", "example": "image/png" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Background processing accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string", "example": "success" },
+                    "jobId": { "type": "string", "format": "uuid" }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "Invalid parameters" }
+        }
+      }
+    },
     "/api/media/{id}": {
       "get": {
         "summary": "Get job processing status",

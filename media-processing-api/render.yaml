@@ -1,0 +1,28 @@
+services:
+  # Web Service configuration for Render
+  - type: web
+    name: media-processing-api
+    runtime: node
+    plan: free
+    region: oregon
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_KEY
+        sync: false
+      - key: INNGEST_EVENT_KEY
+        sync: false
+      - key: INNGEST_SIGNING_KEY
+        sync: false
+      - key: SUPABASE_BUCKET_NAME
+        value: media-assets
+      - key: MAX_FILE_SIZE_MB
+        value: "10"
