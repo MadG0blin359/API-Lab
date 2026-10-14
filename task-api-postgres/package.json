@@ -5,7 +5,8 @@
   "main": "server.js",
   "type": "module",
   "scripts": {
-    "start:prod": "cross-env NODE_ENV=production node --env-file=.env server.js",
+    "start": "node server.js",
+    "start:prod": "cross-env NODE_ENV=production node server.js",
     "start:dev": "cross-env NODE_ENV=development nodemon --env-file=.env server.js",
     "db:reset": "node scripts/reset.db.js"
   },

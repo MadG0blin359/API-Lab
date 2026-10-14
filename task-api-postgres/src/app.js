@@ -17,6 +17,10 @@ import { generalApiLimiter } from "./middlewares/rate.limit.middleware.js";
 function createApp() {
   const app = express();
 
+  // Trust reverse proxy (e.g. Render, Cloudflare, load balancers)
+  // Ensures correct client IP identification for rate limiters and secure cookies
+  app.set("trust proxy", 1);
+
   // Enforce HTTP Security Headers
   app.use(
     helmet({
@@ -39,10 +43,15 @@ function createApp() {
   app.use(compression());
 
   // Configure CORS to dynamically whitelist specific frontend properties
+  const envOrigins = process.env.ALLOWED_ORIGINS
+    ? process.env.ALLOWED_ORIGINS.split(",").map((o) => o.trim())
+    : [];
+
   const allowedOrigins = [
     "http://localhost:5173",
     "http://localhost:3000",
     "https://hoppscotch.io",
+    ...envOrigins,
   ];
 
   app.use(

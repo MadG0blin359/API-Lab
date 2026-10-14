@@ -31,13 +31,14 @@ async function bootstrap() {
     const PORT = process.env.PORT || 3000;
 
     // Open network ports only after internal infrastructure is ready
-    server = app.listen(PORT, () => {
+    server = app.listen(PORT, "0.0.0.0", () => {
       console.log(
-        `🚀 Server is running in ${process.env.NODE_ENV} mode on port ${PORT}...`,
+        `🚀 Server is running in ${process.env.NODE_ENV || "development"} mode on port ${PORT}...`,
       );
+      const hostUrl = process.env.RENDER_EXTERNAL_URL || "https://api-lab-task-api-postgres.onrender.com";
       const url =
         process.env.NODE_ENV === "production"
-          ? "https://api-lab-task-api-postgres.onrender.com"
+          ? `${hostUrl}/docs`
           : `http://localhost:${PORT}/docs`;
       console.log(`Swagger UI available at ${url}`);
     });
