@@ -1,8 +1,8 @@
-name: Keep-Alive & Prevent Supabase Pause
+name: Keep-Alive & Prevent Supabase and Redis Pausing
 
 on:
   schedule:
-    # Runs every 3 days at 12:00 UTC (safe buffer for Supabase 7-day inactivity pause)
+    # Runs every 3 days at 12:00 UTC (safe buffer for Supabase 7-day inactivity pause & Redis free tier)
     - cron: '0 12 */3 * *'
   # Allows manually triggering the ping from the GitHub Actions tab anytime
   workflow_dispatch:
@@ -11,18 +11,36 @@ jobs:
   ping-api:
     runs-on: ubuntu-latest
     steps:
-      - name: Ping Readiness Probe (Wakes Render & Resets Supabase Inactivity)
+      - name: Ping Media Processing API (Wakes Render & Resets Supabase Inactivity)
         run: |
-          echo "Sending keep-alive ping to Render & Supabase..."
+          echo "Sending keep-alive ping to Media Processing API..."
           # Render free instances can take up to 60s to wake from cold sleep
-          HTTP_STATUS=$(curl -s -o response.json -w "%{http_code}" --max-time 90 https://api-lab-media-processing-api.onrender.com/ready)
+          HTTP_STATUS=$(curl -s -o response_media.json -w "%{http_code}" --max-time 90 https://api-lab-media-processing-api.onrender.com/ready)
           
           echo "HTTP Status Code: $HTTP_STATUS"
           echo "Response Body:"
-          cat response.json
+          cat response_media.json
+          echo ""
           
           if [ "$HTTP_STATUS" -eq 200 ]; then
-            echo "✅ Successfully pinged API! Supabase database and storage are active."
+            echo "✅ Successfully pinged Media Processing API! Supabase database and storage are active."
+          else
+            echo "⚠️ Non-200 status code received ($HTTP_STATUS). Check response above."
+          fi
+
+      - name: Ping Task Manager API (Wakes Render & Resets Supabase PostgreSQL & Redis Inactivity)
+        run: |
+          echo "Sending keep-alive ping to Task Manager API (PostgreSQL + Redis)..."
+          # Render free instances can take up to 60s to wake from cold sleep
+          HTTP_STATUS=$(curl -s -o response_task.json -w "%{http_code}" --max-time 90 https://api-lab-task-api-postgres.onrender.com/health)
+          
+          echo "HTTP Status Code: $HTTP_STATUS"
+          echo "Response Body:"
+          cat response_task.json
+          echo ""
+          
+          if [ "$HTTP_STATUS" -eq 200 ]; then
+            echo "✅ Successfully pinged Task Manager API! Supabase PostgreSQL and Redis are active."
           else
             echo "⚠️ Non-200 status code received ($HTTP_STATUS). Check response above."
           fi
