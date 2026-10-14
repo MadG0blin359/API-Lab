@@ -71,6 +71,7 @@ export const generalApiLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   passOnStoreError: true,
+  skip: (req) => req.path === "/health" || req.path === "/healthz",
   store: createStore("api"),
   message: {
     status: "fail",

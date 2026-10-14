@@ -21,6 +21,9 @@ function createApp() {
   // Ensures correct client IP identification for rate limiters and secure cookies
   app.set("trust proxy", 1);
 
+  // Fast liveness probe for cloud orchestrators (bypasses rate limiters & CSRF)
+  app.get("/healthz", (req, res) => res.status(200).send("OK"));
+
   // Enforce HTTP Security Headers
   app.use(
     helmet({

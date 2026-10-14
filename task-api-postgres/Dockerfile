@@ -23,6 +23,7 @@ COPY --chown=node:node --from=builder /app/openapi.json ./
 COPY --chown=node:node --from=builder /app/src ./src
 COPY --chown=node:node --from=builder /app/server.js ./
 
+EXPOSE 10000
 EXPOSE 3000
 
 CMD ["node", "server.js"]
