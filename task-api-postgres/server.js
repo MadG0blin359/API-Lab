@@ -28,7 +28,7 @@ async function bootstrap() {
 
     const { default: createApp } = await import("./src/app.js");
     const app = createApp();
-    const PORT = process.env.PORT || 5000;
+    const PORT = process.env.PORT || 3000;
 
     // Open network ports only after internal infrastructure is ready
     server = app.listen(PORT, () => {
