@@ -1,0 +1,22 @@
+# Capstone Manifest for Automated Evaluator
+version: "1.0"
+name: "flyrank-capstone-lead-capture-platform"
+language: "typescript"
+framework: "express"
+database: "postgresql-supabase"
+
+run: "npm run dev"
+build: "npm run build"
+start: "npm start"
+seed: "npm run seed"
+
+base_url: "http://localhost:3000"
+
+endpoints:
+  health: "/health"
+  ready: "/ready"
+  widget_script: "/widget.v1.js"
+  widget_config: "/api/widgets/00000000-0000-0000-0000-000000000001/config"
+  public_submission: "/api/submissions"
+  dashboard_stats: "/api/dashboard/stats"
+  auth_login: "/api/auth/login"

@@ -1,0 +1,38 @@
+services:
+  - type: web
+    name: lead-capture-api
+    runtime: node
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: COOKIE_SECRET
+        generateValue: true
+      - key: CSRF_SECRET
+        generateValue: true
+      - key: CSRF_ENABLED
+        value: "true"
+      - key: CORS_ORIGIN
+        value: "*"
+      - key: SUBMISSION_RATE_LIMIT_WINDOW_MS
+        value: "60000"
+      - key: SUBMISSION_RATE_LIMIT_MAX
+        value: "15"
+      - key: MOCK_GEO_PROVIDER_A_FAIL
+        value: "false"
+      - key: MOCK_GEO_PROVIDER_B_FAIL
+        value: "false"
+      - key: MOCK_NOTIFICATION_FAIL
+        value: "false"
