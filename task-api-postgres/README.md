@@ -10,19 +10,25 @@ This project is a modular Task Management backend service designed to handle tas
 
 ---
 
+## Live Test
+
+Real-time api at - [/docs](https://api-lab-task-api-postgres.onrender.com/docs)
+
+---
+
 ## Tech Stack
 
-| Layer               | Technology                           |
-| :------------------ | :----------------------------------- |
-| **Runtime**         | Node.js 24                           |
-| **Framework**       | Express.js 5                         |
-| **Database**        | PostgreSQL 18                        |
-| **Connection Pool** | PgBouncer (transaction multiplexing) |
-| **Cache**           | Redis 8 (token blacklisting)         |
-| **Auth Provider**   | Supabase Auth (JWT)                  |
-| **CSRF**            | Signed Double-Submit Cookie          |
-| **Docs**            | Swagger UI (OpenAPI 3.0)             |
-| **Containerization**| Docker Compose                       |
+| Layer                | Technology                           |
+| :------------------- | :----------------------------------- |
+| **Runtime**          | Node.js 24                           |
+| **Framework**        | Express.js 5                         |
+| **Database**         | PostgreSQL 18                        |
+| **Connection Pool**  | PgBouncer (transaction multiplexing) |
+| **Cache**            | Redis 8 (token blacklisting)         |
+| **Auth Provider**    | Supabase Auth (JWT)                  |
+| **CSRF**             | Signed Double-Submit Cookie          |
+| **Docs**             | Swagger UI (OpenAPI 3.0)             |
+| **Containerization** | Docker Compose                       |
 
 ---
 
@@ -60,35 +66,35 @@ This API uses a cookie-based authentication system with CSRF protection:
 
 ### Authentication
 
-| Method   | Endpoint        | Description                            | Auth Required | CSRF Required |
-| :------- | :-------------- | :------------------------------------- | :-----------: | :-----------: |
-| **GET**  | `/auth/csrf`    | Get a CSRF token (sets cookie)         | No            | No            |
-| **POST** | `/auth/signup`  | Create a user account                  | No            | No            |
-| **POST** | `/auth/login`   | Authenticate & set session cookies     | No            | No            |
-| **POST** | `/auth/logout`  | Revoke session (Redis blacklist)       | Yes           | Yes           |
-| **POST** | `/auth/refresh` | Refresh an expired access token        | No            | Yes           |
+| Method   | Endpoint        | Description                        | Auth Required | CSRF Required |
+| :------- | :-------------- | :--------------------------------- | :-----------: | :-----------: |
+| **GET**  | `/auth/csrf`    | Get a CSRF token (sets cookie)     |      No       |      No       |
+| **POST** | `/auth/signup`  | Create a user account              |      No       |      No       |
+| **POST** | `/auth/login`   | Authenticate & set session cookies |      No       |      No       |
+| **POST** | `/auth/logout`  | Revoke session (Redis blacklist)   |      Yes      |      Yes      |
+| **POST** | `/auth/refresh` | Refresh an expired access token    |      No       |      Yes      |
 
 ### User
 
-| Method  | Endpoint        | Description                  | Auth Required | CSRF Required |
-| :------ | :-------------- | :--------------------------- | :-----------: | :-----------: |
-| **GET** | `/user/public`  | Retrieve public data         | No            | No            |
-| **GET** | `/user/profile` | Retrieve authenticated user  | Yes           | No            |
+| Method  | Endpoint        | Description                 | Auth Required | CSRF Required |
+| :------ | :-------------- | :-------------------------- | :-----------: | :-----------: |
+| **GET** | `/user/public`  | Retrieve public data        |      No       |      No       |
+| **GET** | `/user/profile` | Retrieve authenticated user |      Yes      |      No       |
 
 ### Tasks (User-Scoped)
 
 All task endpoints require authentication. Each user can only access their own tasks.
 
-| Method     | Endpoint               | Description                                           | Auth Required | CSRF Required |
-| :--------- | :--------------------- | :---------------------------------------------------- | :-----------: | :-----------: |
-| **GET**    | `/tasks`               | Get tasks (multi-filter, search, sort, pagination)    | Yes           | No            |
-| **GET**    | `/tasks/stats`         | Get task statistics (total, complete, overdue, etc.)  | Yes           | No            |
-| **POST**   | `/tasks/bulk`          | Perform bulk action (complete, delete, priority, etc) | Yes           | Yes           |
-| **GET**    | `/tasks/{id}`          | Get a specific task by ID                             | Yes           | No            |
-| **POST**   | `/tasks`               | Create a new task (with priority, dueDate, tags)      | Yes           | Yes           |
-| **PUT**    | `/tasks/{id}`          | Update an existing task                               | Yes           | Yes           |
-| **DELETE** | `/tasks/{id}`          | Soft delete task (`?permanent=true` for hard delete)  | Yes           | Yes           |
-| **POST**   | `/tasks/{id}/restore`  | Restore a soft-deleted task from trash                | Yes           | Yes           |
+| Method     | Endpoint              | Description                                           | Auth Required | CSRF Required |
+| :--------- | :-------------------- | :---------------------------------------------------- | :-----------: | :-----------: |
+| **GET**    | `/tasks`              | Get tasks (multi-filter, search, sort, pagination)    |      Yes      |      No       |
+| **GET**    | `/tasks/stats`        | Get task statistics (total, complete, overdue, etc.)  |      Yes      |      No       |
+| **POST**   | `/tasks/bulk`         | Perform bulk action (complete, delete, priority, etc) |      Yes      |      Yes      |
+| **GET**    | `/tasks/{id}`         | Get a specific task by ID                             |      Yes      |      No       |
+| **POST**   | `/tasks`              | Create a new task (with priority, dueDate, tags)      |      Yes      |      Yes      |
+| **PUT**    | `/tasks/{id}`         | Update an existing task                               |      Yes      |      Yes      |
+| **DELETE** | `/tasks/{id}`         | Soft delete task (`?permanent=true` for hard delete)  |      Yes      |      Yes      |
+| **POST**   | `/tasks/{id}/restore` | Restore a soft-deleted task from trash                |      Yes      |      Yes      |
 
 **Query Parameters** for `GET /tasks`:
 
@@ -101,16 +107,16 @@ All task endpoints require authentication. Each user can only access their own t
 | `status`         | string  | Quick status: `all`, `completed`, `pending`, `overdue`                  |
 | `sortBy`         | string  | Sort field: `created_at`, `updated_at`, `due_date`, `priority`, `title` |
 | `sortOrder`      | string  | Sort direction: `asc` or `desc` (default: `desc`)                       |
-| `limit`          | integer | Max number of tasks to return (1-100, default: 20)                       |
+| `limit`          | integer | Max number of tasks to return (1-100, default: 20)                      |
 | `offset`         | integer | Number of tasks to skip (default: 0)                                    |
 | `includeDeleted` | boolean | Include soft-deleted tasks (default: `false`)                           |
 
 ### Meta
 
-| Method  | Endpoint  | Description                                                 | Auth Required | CSRF Required |
-| :------ | :-------- | :---------------------------------------------------------- | :-----------: | :-----------: |
-| **GET** | `/`       | List API endpoints directory                                | No            | No            |
-| **GET** | `/health` | Detailed health check (DB/Redis latency, uptime, memory)   | No            | No            |
+| Method  | Endpoint  | Description                                              | Auth Required | CSRF Required |
+| :------ | :-------- | :------------------------------------------------------- | :-----------: | :-----------: |
+| **GET** | `/`       | List API endpoints directory                             |      No       |      No       |
+| **GET** | `/health` | Detailed health check (DB/Redis latency, uptime, memory) |      No       |      No       |
 
 ---
 

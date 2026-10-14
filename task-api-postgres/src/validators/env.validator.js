@@ -1,17 +1,26 @@
 const validateEnv = () => {
+  const missing = [];
+
+  // Validate Postgres configuration: either DATABASE_URL or individual params
+  if (!process.env.DATABASE_URL) {
+    const dbRequired = [
+      "POSTGRES_USER",
+      "POSTGRES_PASSWORD",
+      "POSTGRES_DB",
+      "DB_HOST",
+      "DB_PORT",
+    ];
+    missing.push(...dbRequired.filter((key) => !process.env[key]));
+  }
+
   const baseRequired = [
     "NODE_ENV",
-    "POSTGRES_USER",
-    "POSTGRES_PASSWORD",
-    "POSTGRES_DB",
-    "DB_HOST",
-    "DB_PORT",
     "CSRF_SECRET",
     "SUPABASE_URL",
     "SUPABASE_PUB_KEY",
   ];
 
-  const missing = baseRequired.filter((key) => !process.env[key]);
+  missing.push(...baseRequired.filter((key) => !process.env[key]));
 
   // Validate Redis configuration depending on environment
   if (process.env.NODE_ENV === "production" && !process.env.REDIS_URL) {

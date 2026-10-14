@@ -1,4 +1,3 @@
-import createApp from "./src/app.js";
 import validateEnv from "./src/validators/env.validator.js";
 import redisClient from "./src/config/redis.client.js";
 import db from "./src/config/database.js";
@@ -19,13 +18,15 @@ async function bootstrap() {
     console.log("🔍 Verifying environment variables...");
     validateEnv();
 
-    console.log("🛠️ Initializing database schema...");
-    await initializeDatabase();
-
+    console.log("🔌 Connecting to Redis...");
     await redisClient.connect();
     const pingResponse = await redisClient.ping();
     console.log(`🏓 Redis PING Response: ${pingResponse}`);
 
+    console.log("🛠️ Initializing database schema...");
+    await initializeDatabase();
+
+    const { default: createApp } = await import("./src/app.js");
     const app = createApp();
     const PORT = process.env.PORT || 5000;
 
@@ -36,7 +37,7 @@ async function bootstrap() {
       );
       const url =
         process.env.NODE_ENV === "production"
-          ? "https://api-lab-kiw8.onrender.com/"
+          ? "https://api-lab-task-api-postgres.onrender.com"
           : `http://localhost:${PORT}/docs`;
       console.log(`Swagger UI available at ${url}`);
     });

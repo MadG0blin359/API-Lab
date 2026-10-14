@@ -6,11 +6,31 @@ const createStore = (prefix) => {
   return new RedisStore({
     sendCommand: async (...args) => {
       if (!redisClient.isOpen) {
-        // Wait briefly for Redis connection if server is in bootstrap phase
-        await new Promise((resolve) => {
+        // Wait for Redis connection if server is in bootstrap phase
+        await new Promise((resolve, reject) => {
           if (redisClient.isOpen) return resolve();
-          redisClient.once("ready", resolve);
-          setTimeout(resolve, 1500);
+          const onReady = () => {
+            cleanup();
+            resolve();
+          };
+          const onError = (err) => {
+            cleanup();
+            reject(err);
+          };
+          const timeout = setTimeout(() => {
+            cleanup();
+            if (redisClient.isOpen) resolve();
+            else reject(new Error("Redis client connection timed out waiting to initialize rate limiter"));
+          }, 10000);
+
+          function cleanup() {
+            clearTimeout(timeout);
+            redisClient.removeListener("ready", onReady);
+            redisClient.removeListener("error", onError);
+          }
+
+          redisClient.once("ready", onReady);
+          redisClient.once("error", onError);
         });
 
         if (!redisClient.isOpen) {
