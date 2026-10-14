@@ -166,8 +166,6 @@ lead-capture-api/
 │   ├── app.ts                       # Express app assembly & CORS configuration
 │   └── server.ts                    # HTTP server bootstrapper
 ├── capstone.yaml                    # Automated evaluator manifest
-├── EVIDENCE.md                      # Proofs for Acceptance Probes 1 through 6
-├── BUILDLOG.md                      # AI assistance & engineering decision log
 ├── render.yaml                      # Render Blueprint deployment configuration
 └── package.json
 ```
