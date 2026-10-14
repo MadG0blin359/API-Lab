@@ -14,7 +14,6 @@ export const IMAGE_VARIANTS = {
   full: { width: 1920, height: 1080, fit: "inside" as const, quality: 85 },
 } as const;
 
-export const WEBP_QUALITY = 80;
 
 // ─── Inngest Worker Limits (Optimized for Free Tier: 512MB RAM) ──
 export const INNGEST_CONCURRENCY_LIMIT = Number(process.env.INNGEST_CONCURRENCY_LIMIT || 1);

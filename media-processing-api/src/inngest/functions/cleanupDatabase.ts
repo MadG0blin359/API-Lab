@@ -59,13 +59,15 @@ export const cleanupDatabaseJob = inngestClient.createFunction(
             // Raw path format fallback
             pathsToDelete.push(job.result_url);
           }
+        } else {
+          // Fallback if result_url wasn't stored (e.g., interrupted/failed jobs)
+          pathsToDelete.push(
+            `${PROCESSED_FOLDER}/${job.id}.webp`,
+            `${PROCESSED_FOLDER}/${job.id}-thumbnail.webp`,
+            `${PROCESSED_FOLDER}/${job.id}-medium.webp`,
+            `${PROCESSED_FOLDER}/${job.id}-full.webp`,
+          );
         }
-
-        // Also add direct jobId wildcards
-        pathsToDelete.push(`${PROCESSED_FOLDER}/${job.id}.webp`);
-        pathsToDelete.push(`${PROCESSED_FOLDER}/${job.id}-thumbnail.webp`);
-        pathsToDelete.push(`${PROCESSED_FOLDER}/${job.id}-medium.webp`);
-        pathsToDelete.push(`${PROCESSED_FOLDER}/${job.id}-full.webp`);
       }
 
       // Best-effort list and clean incoming folder for matching files

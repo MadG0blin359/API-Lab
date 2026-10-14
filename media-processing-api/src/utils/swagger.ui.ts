@@ -4,7 +4,6 @@ import { Application } from "express";
 
 /**
  * Attaches Swagger API documentation to the Express application globally.
- * @param {import("express").Application} app - The Express application instance.
  */
 export default function setupSwagger(app: Application) {
   try {

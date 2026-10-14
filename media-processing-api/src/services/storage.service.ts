@@ -1,5 +1,5 @@
 import { supabase } from "../utils/supabase.js";
-import { SUPABASE_BUCKET, INCOMING_FOLDER } from "../config/constants.js";
+import { SUPABASE_BUCKET, INCOMING_FOLDER, PROCESSED_FOLDER } from "../config/constants.js";
 import crypto from "crypto";
 import path from "path";
 
@@ -60,7 +60,7 @@ export const storageService = {
    * Returns the internal storage path.
    */
   async uploadProcessed(buffer: Buffer, filename: string) {
-    const storagePath = `processed/${filename}`;
+    const storagePath = `${PROCESSED_FOLDER}/${filename}`;
 
     const { error } = await supabase.storage
       .from(SUPABASE_BUCKET)

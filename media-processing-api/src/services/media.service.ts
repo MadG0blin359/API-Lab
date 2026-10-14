@@ -18,35 +18,8 @@ export const mediaService = {
       throw new AppError(500, "Failed to cache incoming file.");
     }
 
-    // 2. Register the job in the database
-    let job: { id: string };
-    try {
-      job = await mediaRepository.createJob(file.originalname);
-    } catch (err) {
-      console.error("Database insert error:", err);
-      // Compensating action: clean up the uploaded file
-      await storageService.deleteFiles([storagePath]);
-      throw new AppError(500, "Database insertion failed.");
-    }
-
-    // 3. Dispatch background processing event
-    try {
-      await inngestClient.send({
-        name: "media/process.requested",
-        data: {
-          jobId: job.id,
-          storagePath,
-          mimetype: file.mimetype,
-        },
-      });
-    } catch (err) {
-      console.error("Inngest dispatch error:", err);
-      // Compensating action: clean up both storage and DB
-      await storageService.deleteFiles([storagePath]);
-      throw new AppError(500, "Failed to dispatch processing job.");
-    }
-
-    return job.id;
+    // 2. Delegate job registration and background dispatch
+    return this.processDirectUpload(storagePath, file.originalname, file.mimetype);
   },
 
   /**

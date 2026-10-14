@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { mediaService } from "../services/media.service.js";
+import { storageService } from "../services/storage.service.js";
 import { supabase } from "../utils/supabase.js";
 import { SUPABASE_BUCKET } from "../config/constants.js";
 import { jobEvents, JobEventPayload } from "../utils/events.js";
@@ -9,9 +10,9 @@ import AppError from "../utils/app.error.js";
 /**
  * Helper to dynamically create signed URLs for single or multi-variant assets
  */
-const resolveSignedResult = async (resultUrlValue: string): Promise<any> => {
+const resolveSignedResult = async (resultUrlValue: string | Record<string, any>): Promise<any> => {
   try {
-    const parsed = JSON.parse(resultUrlValue);
+    const parsed = typeof resultUrlValue === "string" ? JSON.parse(resultUrlValue) : resultUrlValue;
     if (parsed.variants && typeof parsed.variants === "object") {
       const signedVariants: Record<string, any> = {};
 
@@ -45,6 +46,10 @@ const resolveSignedResult = async (resultUrlValue: string): Promise<any> => {
   }
 
   // Single file fallback
+  if (typeof resultUrlValue !== "string") {
+    throw new AppError(500, "Invalid media result format.");
+  }
+
   const { data: signedData, error: signError } = await supabase.storage
     .from(SUPABASE_BUCKET)
     .createSignedUrl(resultUrlValue, 3600);
@@ -81,7 +86,6 @@ export const presignUpload = async (req: Request, res: Response, next: NextFunct
     return next(new AppError(400, "Field 'filename' is required in request body."));
   }
 
-  const { storageService } = await import("../services/storage.service.js");
   const result = await storageService.createPresignedUpload(filename);
 
   return res.status(200).json({
@@ -207,9 +211,7 @@ export const streamJobEvents = async (req: Request, res: Response, next: NextFun
   const onJobUpdate = async (payload: JobEventPayload) => {
     try {
       if (payload.status === "completed" && payload.data) {
-        // Resolve signed URLs before pushing event
-        const rawResultUrl = typeof payload.data === "string" ? payload.data : JSON.stringify(payload.data);
-        payload.data = await resolveSignedResult(rawResultUrl);
+        payload.data = await resolveSignedResult(payload.data);
       }
 
       res.write(`data: ${JSON.stringify(payload)}\n\n`);
