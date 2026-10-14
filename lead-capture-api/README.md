@@ -184,7 +184,7 @@ lead-capture-api/
 ### 1. Clone & Install Dependencies
 
 ```bash
-git clone
+git clone https://github.com/MadG0blin359/API-Lab/tree/main/lead-capture-api
 cd lead-capture-api
 npm install
 ```
