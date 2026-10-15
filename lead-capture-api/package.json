@@ -7,7 +7,6 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
-    "postinstall": "npm run build",
     "start": "node dist/server.js",
     "typecheck": "tsc --noEmit",
     "seed": "tsx src/utils/seed.ts"
@@ -25,7 +24,7 @@
   "author": "",
   "license": "MIT",
   "engines": {
-    "node": ">=20.0.0"
+    "node": ">=24.0.0"
   },
   "dependencies": {
     "apilayer-ipstack": "^1.0.1",
