@@ -1,11 +1,12 @@
 import { Request, Response, NextFunction } from "express";
-import { supabase } from "../config/supabase.js";
+import { auth } from "../config/firebase.js";
 import { AppError } from "../utils/app-error.js";
+import { logger } from "../utils/logger.js";
 
 /**
- * Middleware that requires a valid Supabase JWT Bearer token.
- * Attaches the authenticated Supabase User object to `req.user`.
- * Express 5 automatically routes any thrown errors to the global errorHandler.
+ * Middleware that requires a valid Firebase Auth ID Token (JWT).
+ * Attaches the decoded user to `req.user`.
+ * Express 5 automatically routes thrown errors to the global errorHandler.
  */
 export const requireAuth = async (
   req: Request,
@@ -15,31 +16,36 @@ export const requireAuth = async (
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    throw new AppError(401, "Authentication token missing or invalid format (Bearer token expected)");
+    throw new AppError(
+      401,
+      "Authentication token missing or invalid format (Bearer token expected)"
+    );
   }
 
-  const token = authHeader.split(" ")[1];
+  const token = authHeader.split(" ")[1]?.trim();
 
   if (!token) {
     throw new AppError(401, "Bearer token is empty");
   }
 
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser(token);
+  try {
+    const decodedToken = await auth.verifyIdToken(token);
 
-  if (error || !user) {
-    throw new AppError(401, error?.message || "Invalid or expired authentication token");
+    req.user = {
+      ...decodedToken,
+      id: decodedToken.uid,
+      uid: decodedToken.uid,
+    };
+    req.token = token;
+    next();
+  } catch (error: any) {
+    logger.warn(`[AuthMiddleware] Token verification failed: ${error.message}`);
+    throw new AppError(401, `Invalid or expired authentication token: ${error.message}`);
   }
-
-  req.user = user;
-  req.token = token;
-  next();
 };
 
 /**
- * Optional Auth middleware: attaches `req.user` if valid token is provided,
+ * Optional Auth middleware: attaches `req.user` if a valid Firebase token is provided,
  * but allows the request to continue if no token is sent.
  */
 export const optionalAuth = async (
@@ -50,16 +56,16 @@ export const optionalAuth = async (
   const authHeader = req.headers.authorization;
 
   if (authHeader && authHeader.startsWith("Bearer ")) {
-    const token = authHeader.split(" ")[1];
+    const token = authHeader.split(" ")[1]?.trim();
     if (token) {
       try {
-        const {
-          data: { user },
-        } = await supabase.auth.getUser(token);
-        if (user) {
-          req.user = user;
-          req.token = token;
-        }
+        const decodedToken = await auth.verifyIdToken(token);
+        req.user = {
+          ...decodedToken,
+          id: decodedToken.uid,
+          uid: decodedToken.uid,
+        };
+        req.token = token;
       } catch {
         // Intentionally ignore failure in optional auth
       }
@@ -68,3 +74,5 @@ export const optionalAuth = async (
 
   next();
 };
+
+export default requireAuth;

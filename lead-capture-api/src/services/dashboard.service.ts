@@ -1,36 +1,33 @@
-import { supabaseAdmin, createScopedClient } from "../config/supabase.js";
-import { AppError } from "../utils/app-error.js";
+import { QueryDocumentSnapshot } from "firebase-admin/firestore";
+import { db } from "../config/firebase.js";
 import { DashboardStats, TimeSeriesPoint, BreakdownItem, Submission } from "../types/index.js";
 
 export const dashboardService = {
   /**
-   * Compute aggregated analytics and telemetry for the authenticated owner.
+   * Compute aggregated analytics and telemetry for the authenticated owner from Firestore.
    */
-  async getStats(userId: string, userToken?: string): Promise<DashboardStats> {
-    const client = userToken ? createScopedClient(userToken) : supabaseAdmin;
-
+  async getStats(userId: string): Promise<DashboardStats> {
     // 1. Total Widgets Count
-    const { count: widgetCount, error: widgetError } = await client
-      .from("widgets")
-      .select("*", { count: "exact", head: true })
-      .eq("user_id", userId);
-
-    if (widgetError) {
-      throw new AppError(500, `Failed to load widget statistics: ${widgetError.message}`);
-    }
+    const widgetsSnapshot = await db
+      .collection("widgets")
+      .where("user_id", "==", userId)
+      .get();
+    const totalWidgets = widgetsSnapshot.size;
 
     // 2. Fetch all submissions for the tenant to compute aggregations
-    const { data: rawSubmissions, error: subError } = await client
-      .from("submissions")
-      .select("id, widget_id, created_at, geo_data, data, is_spam")
-      .eq("user_id", userId)
-      .order("created_at", { ascending: false });
+    const submissionsSnapshot = await db
+      .collection("submissions")
+      .where("user_id", "==", userId)
+      .get();
 
-    if (subError) {
-      throw new AppError(500, `Failed to compute dashboard metrics: ${subError.message}`);
-    }
+    const submissions: Submission[] = submissionsSnapshot.docs.map((doc: QueryDocumentSnapshot) => {
+      const data = doc.data();
+      return {
+        ...data,
+        id: doc.id,
+      } as Submission;
+    });
 
-    const submissions = rawSubmissions || [];
     const totalSubmissions = submissions.length;
 
     // 3. Time Windows
@@ -54,8 +51,8 @@ export const dashboardService = {
       if (createdAt >= sevenDaysAgo) last7Days++;
       if (createdAt >= thirtyDaysAgo) last30Days++;
 
-      // Daily Time-Series (last 14 days)
-      const dayKey = createdAt.toISOString().split("T")[0];
+      // Daily Time-Series
+      const dayKey = createdAt.toISOString().split("T")[0]!;
       dailyMap[dayKey] = (dailyMap[dayKey] || 0) + 1;
 
       // Geo Breakdown
@@ -91,16 +88,23 @@ export const dashboardService = {
       }))
       .sort((a, b) => b.count - a.count);
 
+    // Sort submissions descending for recent list
+    const sortedSubmissions = [...submissions].sort((a, b) => {
+      const timeA = new Date(a.created_at || 0).getTime();
+      const timeB = new Date(b.created_at || 0).getTime();
+      return timeB - timeA;
+    });
+
     return {
       totalSubmissions,
-      totalWidgets: widgetCount || 0,
+      totalWidgets,
       submissionsLast24Hours: last24Hours,
       submissionsLast7Days: last7Days,
       submissionsLast30Days: last30Days,
       timeSeries,
       topCountries,
       widgetBreakdown,
-      recentSubmissions: (submissions.slice(0, 10) as unknown) as Submission[],
+      recentSubmissions: sortedSubmissions.slice(0, 10),
     };
   },
 };

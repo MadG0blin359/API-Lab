@@ -4,7 +4,6 @@ import authRoutes from "./auth.routes.js";
 import widgetRoutes from "./widget.routes.js";
 import submissionRoutes from "./submission.routes.js";
 import dashboardRoutes from "./dashboard.routes.js";
-import storageRoutes from "./storage.routes.js";
 import { getCsrfTokenHandler } from "../middlewares/csrf.middleware.js";
 
 const router = Router();
@@ -20,6 +19,5 @@ router.use("/api/auth", authRoutes);
 router.use("/api/widgets", widgetRoutes);
 router.use("/api/submissions", submissionRoutes);
 router.use("/api/dashboard", dashboardRoutes);
-router.use("/api/storage", storageRoutes);
 
 export default router;

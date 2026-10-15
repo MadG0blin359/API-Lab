@@ -1,18 +1,23 @@
-import { supabaseAdmin, createScopedClient } from "../config/supabase.js";
+import crypto from "node:crypto";
+import { Query, QueryDocumentSnapshot } from "firebase-admin/firestore";
+import { db } from "../config/firebase.js";
 import { AppError } from "../utils/app-error.js";
 import { geoService } from "./geo.service.js";
 import { notificationService } from "./notification.service.js";
-import { PublicSubmissionInput, SubmissionQueryInput } from "../validators/submission.validator.js";
+import {
+  PublicSubmissionInput,
+  SubmissionQueryInput,
+} from "../validators/submission.validator.js";
 import { Submission, Widget } from "../types/index.js";
 import { logger } from "../utils/logger.js";
 
 export const submissionService = {
   /**
    * Hardened Public Submission Processing Pipeline:
-   * 1. Validate Widget existence & status
+   * 1. Validate Widget existence & status in Firestore
    * 2. Honeypot check (Abuse detection)
    * 3. IP Geolocation Enrichment (Fallback chain)
-   * 4. Persistence in Database
+   * 4. Persistence in Firestore
    * 5. Safe decoupled side effect (email/webhook)
    */
   async processSubmission(
@@ -21,24 +26,25 @@ export const submissionService = {
     meta: { userAgent?: string; origin?: string; referer?: string }
   ): Promise<{ submission: Submission; enriched: boolean }> {
     // 1. Retrieve the target widget
-    const { data: widgetData, error: widgetError } = await supabaseAdmin
-      .from("widgets")
-      .select("*")
-      .eq("id", input.widget_id)
-      .single();
+    const widgetDoc = await db.collection("widgets").doc(input.widget_id).get();
 
-    if (widgetError || !widgetData) {
-      throw new AppError(404, `Widget with ID ${input.widget_id} does not exist or has been deleted.`);
+    if (!widgetDoc.exists) {
+      throw new AppError(
+        404,
+        `Widget with ID ${input.widget_id} does not exist or has been deleted.`
+      );
     }
 
-    const widget = widgetData as Widget;
+    const widget = { ...widgetDoc.data(), id: widgetDoc.id } as Widget;
 
     if (!widget.is_active) {
-      throw new AppError(403, `Widget "${widget.name}" is currently disabled and not accepting submissions.`);
+      throw new AppError(
+        403,
+        `Widget "${widget.name}" is currently disabled and not accepting submissions.`
+      );
     }
 
     // 2. Honeypot abuse prevention (Probe 6)
-    // Hidden fields populated by scrapers/bots
     const isBot = Boolean(input._hp?.trim() || input.website_url_hp?.trim());
     if (isBot) {
       logger.warn(`[AbuseGuard] Honeypot triggered from IP ${ip} on widget ${widget.id}`);
@@ -48,35 +54,39 @@ export const submissionService = {
     // 3. Geolocation Enrichment via Provider Fallback Chain (Probe 4)
     const geoData = await geoService.enrichIp(ip);
 
-    // 4. Persist valid submission
-    const insertPayload = {
+    // 4. Persist valid submission in Firestore
+    const submissionId = crypto.randomUUID();
+    const now = new Date().toISOString();
+
+    const submission: Submission = {
+      id: submissionId,
       widget_id: widget.id,
       user_id: widget.user_id, // Link to widget owner tenant
       data: input.data,
       ip_address: ip,
-      user_agent: meta.userAgent || null,
-      origin: meta.origin || null,
-      referer: meta.referer || null,
+      user_agent: meta.userAgent || undefined,
+      origin: meta.origin || undefined,
+      referer: meta.referer || undefined,
       geo_data: geoData,
       is_spam: false,
+      created_at: now,
     };
 
-    const { data: savedSubmission, error: insertError } = await supabaseAdmin
-      .from("submissions")
-      .insert(insertPayload)
-      .select()
-      .single();
+    // Clean undefined fields for Firestore
+    const firestorePayload: Record<string, any> = { ...submission };
+    Object.keys(firestorePayload).forEach((key) => {
+      if (firestorePayload[key] === undefined) {
+        delete firestorePayload[key];
+      }
+    });
 
-    if (insertError || !savedSubmission) {
-      logger.error("[SubmissionService] Failed to persist submission:", insertError);
-      throw new AppError(500, `Failed to store submission: ${insertError?.message || "Unknown error"}`);
-    }
-
-    const submission = savedSubmission as Submission;
+    await db.collection("submissions").doc(submissionId).set(firestorePayload);
 
     // 5. Safe decoupled side effect (Probe 5: Must never block or fail submission)
     notificationService.notifySubmission(submission, widget).catch((err) => {
-      logger.error(`[SubmissionService] Unexpected error in safe side-effect handler: ${err.message}`);
+      logger.error(
+        `[SubmissionService] Unexpected error in safe side-effect handler: ${err.message}`
+      );
     });
 
     return {
@@ -86,49 +96,55 @@ export const submissionService = {
   },
 
   /**
-   * Fetch submissions for an authenticated tenant with filtering and pagination.
+   * Fetch submissions for an authenticated tenant with filtering and pagination from Firestore.
    */
-  async getAll(userId: string, query: SubmissionQueryInput, userToken?: string) {
-    const client = userToken ? createScopedClient(userToken) : supabaseAdmin;
+  async getAll(userId: string, query: SubmissionQueryInput) {
     const page = query.page || 1;
     const limit = query.limit || 20;
-    const from = (page - 1) * limit;
-    const to = from + limit - 1;
 
-    let queryBuilder = client
-      .from("submissions")
-      .select("*, widgets(name, title)", { count: "exact" })
-      .eq("user_id", userId);
+    let queryRef: Query = db
+      .collection("submissions")
+      .where("user_id", "==", userId);
 
     if (query.widget_id) {
-      queryBuilder = queryBuilder.eq("widget_id", query.widget_id);
+      queryRef = queryRef.where("widget_id", "==", query.widget_id);
     }
 
     if (query.is_spam !== undefined) {
-      queryBuilder = queryBuilder.eq("is_spam", query.is_spam);
+      queryRef = queryRef.where("is_spam", "==", query.is_spam);
     }
 
+    const snapshot = await queryRef.get();
+    let submissions: Submission[] = snapshot.docs.map((doc: QueryDocumentSnapshot) => {
+      const data = doc.data();
+      return {
+        ...data,
+        id: doc.id,
+      } as Submission;
+    });
+
+    // Date range filters in-memory
     if (query.from_date) {
-      queryBuilder = queryBuilder.gte("created_at", query.from_date);
+      submissions = submissions.filter((s) => s.created_at >= query.from_date!);
     }
-
     if (query.to_date) {
-      queryBuilder = queryBuilder.lte("created_at", query.to_date);
+      submissions = submissions.filter((s) => s.created_at <= query.to_date!);
     }
 
-    const { data, error, count } = await queryBuilder
-      .order("created_at", { ascending: false })
-      .range(from, to);
+    // Sort by created_at descending
+    submissions.sort((a, b) => {
+      const timeA = new Date(a.created_at || 0).getTime();
+      const timeB = new Date(b.created_at || 0).getTime();
+      return timeB - timeA;
+    });
 
-    if (error) {
-      throw new AppError(500, `Failed to retrieve submissions: ${error.message}`);
-    }
-
-    const totalCount = count || 0;
+    const totalCount = submissions.length;
     const totalPages = Math.ceil(totalCount / limit);
+    const startIndex = (page - 1) * limit;
+    const paginatedSubmissions = submissions.slice(startIndex, startIndex + limit);
 
     return {
-      submissions: data || [],
+      submissions: paginatedSubmissions,
       pagination: {
         page,
         limit,
@@ -143,39 +159,31 @@ export const submissionService = {
   /**
    * Fetch a single submission by ID (tenant-isolated).
    */
-  async getById(id: string, userId: string, userToken?: string): Promise<Submission> {
-    const client = userToken ? createScopedClient(userToken) : supabaseAdmin;
+  async getById(id: string, userId: string): Promise<Submission> {
+    const doc = await db.collection("submissions").doc(id).get();
 
-    const { data, error } = await client
-      .from("submissions")
-      .select("*, widgets(name, title)")
-      .eq("id", id)
-      .eq("user_id", userId)
-      .single();
-
-    if (error || !data) {
-      throw new AppError(404, `Submission with ID ${id} not found or access denied.`);
+    if (!doc.exists) {
+      throw new AppError(404, `Submission with ID ${id} not found.`);
     }
 
-    return data as Submission;
+    const data = doc.data() as Submission;
+
+    if (data.user_id !== userId) {
+      throw new AppError(403, `Access denied to submission ${id}.`);
+    }
+
+    return {
+      ...data,
+      id: doc.id,
+    };
   },
 
   /**
    * Delete a submission (tenant-isolated).
    */
-  async delete(id: string, userId: string, userToken?: string): Promise<boolean> {
-    const client = userToken ? createScopedClient(userToken) : supabaseAdmin;
-
-    const { error } = await client
-      .from("submissions")
-      .delete()
-      .eq("id", id)
-      .eq("user_id", userId);
-
-    if (error) {
-      throw new AppError(500, `Failed to delete submission: ${error.message}`);
-    }
-
+  async delete(id: string, userId: string): Promise<boolean> {
+    await this.getById(id, userId);
+    await db.collection("submissions").doc(id).delete();
     return true;
   },
 };

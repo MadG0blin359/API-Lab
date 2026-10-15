@@ -30,14 +30,14 @@ const envSchema = z.object({
     .default("3000")
     .transform((val) => parseInt(val, 10)),
   API_BASE_URL: z.string().default("http://localhost:3000"),
-  SUPABASE_URL: z
-    .string()
-    .url({ message: "SUPABASE_URL must be a valid URL" })
-    .default("https://your-project.supabase.co"),
-  SUPABASE_ANON_KEY: z.string().default("your-anon-key"),
-  SUPABASE_SERVICE_ROLE_KEY: z.string().default("your-service-role-key"),
-  SUPABASE_SERVICE_KEY: z.string().optional(),
-  SUPABASE_BUCKET_NAME: z.string().default("uploads"),
+
+  // Firebase / Google Cloud Configuration
+  FIREBASE_PROJECT_ID: z.string().default("lead-capture-platform"),
+  FIREBASE_CLIENT_EMAIL: z.string().optional().default(""),
+  FIREBASE_PRIVATE_KEY: z.string().optional().default(""),
+  FIREBASE_API_KEY: z.string().optional().default(""), // Web API key for password auth REST endpoint
+  FIREBASE_SERVICE_ACCOUNT_PATH: z.string().optional().default(""),
+
   CORS_ORIGIN: z.string().default("*"),
 
   // Rate Limiting
@@ -93,7 +93,6 @@ const envSchema = z.object({
 });
 
 const sanitizeEnv = () => {
-  // Normalize empty strings to undefined so Zod defaults apply
   const rawEnv: Record<string, any> = {};
   for (const [key, val] of Object.entries(process.env)) {
     rawEnv[key] = val === "" ? undefined : val;
@@ -107,20 +106,7 @@ const sanitizeEnv = () => {
     throw new Error("Invalid environment configuration.");
   }
 
-  const data = parsed.data;
-  const serviceKey =
-    data.SUPABASE_SERVICE_ROLE_KEY !== "your-service-role-key"
-      ? data.SUPABASE_SERVICE_ROLE_KEY
-      : data.SUPABASE_SERVICE_KEY || data.SUPABASE_SERVICE_ROLE_KEY;
-
-  return {
-    ...data,
-    SUPABASE_SERVICE_ROLE_KEY: serviceKey,
-    SUPABASE_ANON_KEY:
-      data.SUPABASE_ANON_KEY !== "your-anon-key"
-        ? data.SUPABASE_ANON_KEY
-        : serviceKey,
-  };
+  return parsed.data;
 };
 
 export const env = sanitizeEnv();

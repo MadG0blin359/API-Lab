@@ -8,7 +8,7 @@ export const signUp = async (req: Request, res: Response): Promise<void> => {
     message: "User registered successfully",
     data: {
       user: data.user,
-      session: data.session,
+      token: data.token,
     },
   });
 };
@@ -20,7 +20,8 @@ export const signIn = async (req: Request, res: Response): Promise<void> => {
     message: "Authentication successful",
     data: {
       user: data.user,
-      session: data.session,
+      session: (data as any).session,
+      token: data.token,
     },
   });
 };

@@ -48,7 +48,7 @@ export const createPublicSubmission = async (req: Request, res: Response): Promi
 
 export const getSubmissions = async (req: Request, res: Response): Promise<void> => {
   const userId = req.user!.id;
-  const result = await submissionService.getAll(userId, req.query as any, req.token);
+  const result = await submissionService.getAll(userId, req.query as any);
 
   res.status(200).json({
     success: true,
@@ -61,8 +61,7 @@ export const getSubmissionById = async (req: Request, res: Response): Promise<vo
   const userId = req.user!.id;
   const submission = await submissionService.getById(
     req.params.id as string,
-    userId,
-    req.token
+    userId
   );
 
   res.status(200).json({
@@ -73,7 +72,7 @@ export const getSubmissionById = async (req: Request, res: Response): Promise<vo
 
 export const deleteSubmission = async (req: Request, res: Response): Promise<void> => {
   const userId = req.user!.id;
-  await submissionService.delete(req.params.id as string, userId, req.token);
+  await submissionService.delete(req.params.id as string, userId);
 
   res.status(200).json({
     success: true,

@@ -4,10 +4,10 @@ import swaggerUi from "swagger-ui-express";
 const swaggerDocument = {
   openapi: "3.0.0",
   info: {
-    title: "Lead-Capture & Embeddable Widget Platform API",
+    title: "Lead-Capture & Embeddable Widget Platform API (Firebase & Firestore)",
     version: "1.0.0",
     description:
-      "Production-ready backend platform for embeddable lead-capture widgets, dynamic config delivery, abuse-protected submissions, and owner analytics.",
+      "Production-ready backend platform for embeddable lead-capture widgets, dynamic config delivery, abuse-protected submissions, and owner analytics powered by Firebase Auth and Google Cloud Firestore.",
   },
   servers: [
     {
@@ -21,7 +21,7 @@ const swaggerDocument = {
         type: "http",
         scheme: "bearer",
         bearerFormat: "JWT",
-        description: "Supabase Auth access token obtained from /api/auth/login",
+        description: "Firebase Auth ID token (JWT) obtained from client login or /api/auth/login",
       },
     },
     schemas: {
@@ -31,6 +31,23 @@ const swaggerDocument = {
           success: { type: "boolean", example: false },
           message: { type: "string", example: "Error details and description" },
           statusCode: { type: "number", example: 400 },
+        },
+      },
+      SignUpRequest: {
+        type: "object",
+        required: ["email", "password"],
+        properties: {
+          email: { type: "string", format: "email", example: "user@example.com" },
+          password: { type: "string", minLength: 6, example: "Secret123!" },
+          fullName: { type: "string", example: "Jane Doe" },
+        },
+      },
+      SignInRequest: {
+        type: "object",
+        required: ["email", "password"],
+        properties: {
+          email: { type: "string", format: "email", example: "user@example.com" },
+          password: { type: "string", example: "Secret123!" },
         },
       },
       FormField: {
@@ -128,8 +145,36 @@ const swaggerDocument = {
     "/ready": {
       get: {
         summary: "Readiness probe",
-        description: "Checks Supabase DB connectivity",
-        responses: { 200: { description: "Service and Supabase are ready" } },
+        description: "Checks Firestore database connectivity",
+        responses: { 200: { description: "Service and Firestore are ready" } },
+      },
+    },
+    "/api/auth/signup": {
+      post: {
+        tags: ["Auth"],
+        summary: "Register new user via Firebase Auth",
+        requestBody: {
+          required: true,
+          content: { "application/json": { schema: { $ref: "#/components/schemas/SignUpRequest" } } },
+        },
+        responses: {
+          201: { description: "User registered with auth token" },
+          400: { description: "Invalid input" },
+        },
+      },
+    },
+    "/api/auth/login": {
+      post: {
+        tags: ["Auth"],
+        summary: "Authenticate user and get Firebase Auth token",
+        requestBody: {
+          required: true,
+          content: { "application/json": { schema: { $ref: "#/components/schemas/SignInRequest" } } },
+        },
+        responses: {
+          200: { description: "Login successful with token" },
+          401: { description: "Invalid credentials" },
+        },
       },
     },
     "/api/widgets/{id}/config": {
@@ -143,7 +188,7 @@ const swaggerDocument = {
             name: "id",
             in: "path",
             required: true,
-            schema: { type: "string", format: "uuid" },
+            schema: { type: "string" },
           },
         ],
         responses: {
@@ -167,7 +212,7 @@ const swaggerDocument = {
           },
         },
         responses: {
-          201: { description: "Submission stored and processed" },
+          201: { description: "Submission stored and processed in Firestore" },
           400: { description: "Validation error or Honeypot bot rejected" },
           429: { description: "Too many submissions (Rate limit exceeded)" },
         },
@@ -179,7 +224,7 @@ const swaggerDocument = {
         parameters: [
           { name: "page", in: "query", schema: { type: "integer", default: 1 } },
           { name: "limit", in: "query", schema: { type: "integer", default: 20 } },
-          { name: "widget_id", in: "query", schema: { type: "string", format: "uuid" } },
+          { name: "widget_id", in: "query", schema: { type: "string" } },
         ],
         responses: {
           200: { description: "Paginated submissions list" },
@@ -225,7 +270,7 @@ const swaggerDocument = {
             name: "id",
             in: "path",
             required: true,
-            schema: { type: "string", format: "uuid" },
+            schema: { type: "string" },
           },
         ],
         responses: {
@@ -242,7 +287,7 @@ const swaggerDocument = {
             name: "id",
             in: "path",
             required: true,
-            schema: { type: "string", format: "uuid" },
+            schema: { type: "string" },
           },
         ],
         responses: {
@@ -260,7 +305,7 @@ const swaggerDocument = {
             name: "id",
             in: "path",
             required: true,
-            schema: { type: "string", format: "uuid" },
+            schema: { type: "string" },
           },
         ],
         responses: {
@@ -274,7 +319,7 @@ const swaggerDocument = {
         summary: "Get owner analytics, time series, and geo breakdown",
         security: [{ BearerAuth: [] }],
         responses: {
-          200: { description: "Aggregated analytics" },
+          200: { description: "Aggregated analytics from Firestore" },
           401: { description: "Unauthorized" },
         },
       },

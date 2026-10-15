@@ -1,4 +1,6 @@
-import { supabase, supabaseAdmin, createScopedClient } from "../config/supabase.js";
+import crypto from "node:crypto";
+import { Query, QueryDocumentSnapshot } from "firebase-admin/firestore";
+import { db } from "../config/firebase.js";
 import { env } from "../config/env.js";
 import { AppError } from "../utils/app-error.js";
 import {
@@ -10,45 +12,57 @@ import { Widget, PublicWidgetConfig } from "../types/index.js";
 
 export const widgetService = {
   /**
-   * Fetch all widgets owned by the authenticated tenant.
+   * Fetch all widgets owned by the authenticated tenant from Firestore.
    */
-  async getAll(userId: string, query: WidgetQueryInput, userToken?: string) {
-    const client = userToken ? createScopedClient(userToken) : supabaseAdmin;
+  async getAll(userId: string, query: WidgetQueryInput) {
     const page = query.page || 1;
     const limit = query.limit || 10;
-    const from = (page - 1) * limit;
-    const to = from + limit - 1;
 
-    let queryBuilder = client
-      .from("widgets")
-      .select("*", { count: "exact" })
-      .eq("user_id", userId);
-
-    if (query.search) {
-      queryBuilder = queryBuilder.ilike("name", `%${query.search}%`);
-    }
+    let queryRef: Query = db
+      .collection("widgets")
+      .where("user_id", "==", userId);
 
     if (query.type) {
-      queryBuilder = queryBuilder.eq("type", query.type);
+      queryRef = queryRef.where("type", "==", query.type);
     }
 
     if (query.is_active !== undefined) {
-      queryBuilder = queryBuilder.eq("is_active", query.is_active);
+      queryRef = queryRef.where("is_active", "==", query.is_active);
     }
 
-    const { data, error, count } = await queryBuilder
-      .order("created_at", { ascending: false })
-      .range(from, to);
+    const snapshot = await queryRef.get();
+    let widgets: Widget[] = snapshot.docs.map((doc: QueryDocumentSnapshot) => {
+      const data = doc.data();
+      return {
+        ...data,
+        id: doc.id,
+      } as Widget;
+    });
 
-    if (error) {
-      throw new AppError(500, `Failed to fetch widgets: ${error.message}`);
+    // In-memory search filter if provided
+    if (query.search) {
+      const term = query.search.toLowerCase();
+      widgets = widgets.filter(
+        (w) =>
+          w.name.toLowerCase().includes(term) ||
+          w.title.toLowerCase().includes(term)
+      );
     }
 
-    const totalCount = count || 0;
+    // Sort by created_at descending
+    widgets.sort((a, b) => {
+      const timeA = new Date(a.created_at || 0).getTime();
+      const timeB = new Date(b.created_at || 0).getTime();
+      return timeB - timeA;
+    });
+
+    const totalCount = widgets.length;
     const totalPages = Math.ceil(totalCount / limit);
+    const startIndex = (page - 1) * limit;
+    const paginatedWidgets = widgets.slice(startIndex, startIndex + limit);
 
     return {
-      widgets: (data as Widget[]) || [],
+      widgets: paginatedWidgets,
       pagination: {
         page,
         limit,
@@ -61,23 +75,25 @@ export const widgetService = {
   },
 
   /**
-   * Fetch a single widget by ID, enforcing tenant isolation.
+   * Fetch a single widget by ID from Firestore, enforcing tenant isolation.
    */
-  async getById(id: string, userId: string, userToken?: string): Promise<Widget> {
-    const client = userToken ? createScopedClient(userToken) : supabaseAdmin;
+  async getById(id: string, userId: string): Promise<Widget> {
+    const doc = await db.collection("widgets").doc(id).get();
 
-    const { data, error } = await client
-      .from("widgets")
-      .select("*")
-      .eq("id", id)
-      .eq("user_id", userId)
-      .single();
-
-    if (error || !data) {
-      throw new AppError(404, `Widget with ID ${id} not found or access denied.`);
+    if (!doc.exists) {
+      throw new AppError(404, `Widget with ID ${id} not found.`);
     }
 
-    return data as Widget;
+    const data = doc.data() as Widget;
+
+    if (data.user_id !== userId) {
+      throw new AppError(403, `Access denied to widget ${id}.`);
+    }
+
+    return {
+      ...data,
+      id: doc.id,
+    };
   },
 
   /**
@@ -85,15 +101,13 @@ export const widgetService = {
    * Strips administrative secrets and returns public presentation config.
    */
   async getPublicConfig(id: string, baseUrl?: string): Promise<PublicWidgetConfig> {
-    const { data, error } = await supabaseAdmin
-      .from("widgets")
-      .select("id, name, type, title, description, button_text, success_message, fields, display_settings, is_active")
-      .eq("id", id)
-      .single();
+    const doc = await db.collection("widgets").doc(id).get();
 
-    if (error || !data) {
+    if (!doc.exists) {
       throw new AppError(404, `Widget with ID ${id} not found.`);
     }
+
+    const data = doc.data() as any;
 
     if (!data.is_active) {
       throw new AppError(403, `Widget with ID ${id} is currently inactive.`);
@@ -102,88 +116,91 @@ export const widgetService = {
     const resolvedBaseUrl = baseUrl || env.API_BASE_URL;
 
     return {
-      id: data.id,
-      type: data.type,
+      id: doc.id,
+      type: data.type || "form",
       title: data.title,
       description: data.description,
-      button_text: data.button_text,
-      success_message: data.success_message,
-      fields: data.fields,
-      display_settings: data.display_settings,
+      button_text: data.button_text || "Submit",
+      success_message: data.success_message || "Thank you! Your submission has been received.",
+      fields: data.fields || [],
+      display_settings: data.display_settings || {},
       submission_url: `${resolvedBaseUrl}/api/submissions`,
     };
   },
 
   /**
-   * Create a new widget owned by the current tenant.
+   * Create a new widget owned by the current tenant in Firestore.
    */
-  async create(userId: string, input: CreateWidgetInput, userToken?: string): Promise<Widget> {
-    const client = userToken ? createScopedClient(userToken) : supabaseAdmin;
+  async create(userId: string, input: CreateWidgetInput): Promise<Widget> {
+    const id = crypto.randomUUID();
+    const now = new Date().toISOString();
 
-    const payload = {
-      ...input,
+    const widgetData: Widget = {
+      id,
       user_id: userId,
+      name: input.name,
+      type: input.type || "form",
+      title: input.title,
+      description: input.description,
+      button_text: input.button_text || "Submit",
+      success_message: input.success_message || "Thank you! Your submission has been received.",
+      fields: input.fields || [],
+      display_settings: input.display_settings || {
+        primaryColor: "#2563eb",
+        backgroundColor: "#ffffff",
+        textColor: "#1f2937",
+        borderRadius: "8px",
+        position: "inline",
+      },
+      is_active: true,
+      notification_email: input.notification_email,
+      webhook_url: input.webhook_url,
+      created_at: now,
+      updated_at: now,
     };
 
-    const { data, error } = await client
-      .from("widgets")
-      .insert(payload)
-      .select()
-      .single();
+    await db.collection("widgets").doc(id).set(widgetData);
 
-    if (error || !data) {
-      throw new AppError(500, `Failed to create widget: ${error?.message || "Unknown error"}`);
-    }
-
-    return data as Widget;
+    return widgetData;
   },
 
   /**
    * Update an existing widget, strictly isolated to the tenant.
    */
-  async update(id: string, userId: string, input: UpdateWidgetInput, userToken?: string): Promise<Widget> {
-    const client = userToken ? createScopedClient(userToken) : supabaseAdmin;
-
+  async update(id: string, userId: string, input: UpdateWidgetInput): Promise<Widget> {
     // Verify ownership first
-    await this.getById(id, userId, userToken);
+    const existing = await this.getById(id, userId);
 
-    const { data, error } = await client
-      .from("widgets")
-      .update({
-        ...input,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", id)
-      .eq("user_id", userId)
-      .select()
-      .single();
+    const now = new Date().toISOString();
+    const updatePayload: Record<string, any> = {
+      ...input,
+      updated_at: now,
+    };
 
-    if (error || !data) {
-      throw new AppError(500, `Failed to update widget: ${error?.message || "Unknown error"}`);
-    }
+    // Remove undefined values for Firestore
+    Object.keys(updatePayload).forEach((key) => {
+      if (updatePayload[key] === undefined) {
+        delete updatePayload[key];
+      }
+    });
 
-    return data as Widget;
+    await db.collection("widgets").doc(id).update(updatePayload);
+
+    return {
+      ...existing,
+      ...updatePayload,
+      updated_at: now,
+    } as Widget;
   },
 
   /**
    * Delete an existing widget, strictly isolated to the tenant.
    */
-  async delete(id: string, userId: string, userToken?: string): Promise<boolean> {
-    const client = userToken ? createScopedClient(userToken) : supabaseAdmin;
-
+  async delete(id: string, userId: string): Promise<boolean> {
     // Verify ownership
-    await this.getById(id, userId, userToken);
+    await this.getById(id, userId);
 
-    const { error } = await client
-      .from("widgets")
-      .delete()
-      .eq("id", id)
-      .eq("user_id", userId);
-
-    if (error) {
-      throw new AppError(500, `Failed to delete widget: ${error.message}`);
-    }
-
+    await db.collection("widgets").doc(id).delete();
     return true;
   },
 

@@ -1,44 +1,43 @@
-import { supabaseAdmin } from "../config/supabase.js";
+import { auth, db } from "../config/firebase.js";
 import { logger } from "./logger.js";
 
 async function seed() {
-  logger.info("🌱 Starting database seeding for Lead-Capture Platform...");
+  logger.info("🌱 Starting Firestore database seeding for Lead-Capture Platform...");
 
   const demoEmail = "demo@flyrank.com";
   const demoPassword = "DemoPassword123!";
   let userId: string;
 
-  // 1. Create or Find Demo User in Supabase Auth
+  // 1. Create or Find Demo User in Firebase Auth
   try {
-    const { data: usersData, error: listError } = await supabaseAdmin.auth.admin.listUsers();
-    const existing = usersData?.users?.find((u) => u.email === demoEmail);
-
-    if (existing) {
-      userId = existing.id;
-      logger.info(`ℹ️ Demo user already exists: ${demoEmail} (${userId})`);
-    } else {
-      const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
-        email: demoEmail,
-        password: demoPassword,
-        email_confirm: true,
-        user_metadata: { full_name: "Demo Admin" },
-      });
-
-      if (createError || !newUser.user) {
-        throw new Error(`Failed to create demo auth user: ${createError?.message}`);
+    try {
+      const existingUser = await auth.getUserByEmail(demoEmail);
+      userId = existingUser.uid;
+      logger.info(`ℹ️ Demo user already exists in Firebase Auth: ${demoEmail} (${userId})`);
+    } catch (err: any) {
+      if (err.code === "auth/user-not-found") {
+        const newUser = await auth.createUser({
+          email: demoEmail,
+          password: demoPassword,
+          displayName: "Demo Admin",
+          emailVerified: true,
+        });
+        userId = newUser.uid;
+        logger.info(`✅ Created demo user in Firebase Auth: ${demoEmail} (${userId})`);
+      } else {
+        throw err;
       }
-
-      userId = newUser.user.id;
-      logger.info(`✅ Created demo user: ${demoEmail} (${userId})`);
     }
   } catch (err: any) {
-    logger.warn(`⚠️ Supabase Auth admin user creation fallback: ${err.message}`);
-    // If Supabase Auth is mocked or offline, generate deterministic fallback UUID
+    logger.warn(`⚠️ Firebase Auth user creation fallback: ${err.message}`);
+    // Fallback static UID for local testing without network credentials
     userId = "00000000-0000-0000-0000-0000000000aa";
   }
 
-  // 2. Seed Demo Widget
+  // 2. Seed Demo Widget in Firestore
   const demoWidgetId = "00000000-0000-0000-0000-000000000001";
+  const now = new Date().toISOString();
+
   const widgetPayload = {
     id: demoWidgetId,
     user_id: userId,
@@ -62,21 +61,21 @@ async function seed() {
       position: "inline",
     },
     is_active: true,
+    created_at: now,
+    updated_at: now,
   };
 
-  const { error: widgetError } = await supabaseAdmin
-    .from("widgets")
-    .upsert(widgetPayload, { onConflict: "id" });
-
-  if (widgetError) {
-    logger.error("❌ Failed to upsert demo widget:", widgetError);
-  } else {
-    logger.info(`✅ Seeded demo widget: "${widgetPayload.name}" (${demoWidgetId})`);
+  try {
+    await db.collection("widgets").doc(demoWidgetId).set(widgetPayload, { merge: true });
+    logger.info(`✅ Seeded demo widget in Firestore: "${widgetPayload.name}" (${demoWidgetId})`);
+  } catch (err: any) {
+    logger.error("❌ Failed to upsert demo widget in Firestore:", err.message);
   }
 
-  // 3. Seed Sample Submissions (With realistic geo data for Dashboard visualization)
+  // 3. Seed Sample Submissions in Firestore (With realistic geo data for Dashboard visualization)
   const sampleSubmissions = [
     {
+      id: "sub-seed-001",
       widget_id: demoWidgetId,
       user_id: userId,
       data: {
@@ -101,6 +100,7 @@ async function seed() {
       created_at: new Date(Date.now() - 3600 * 1000 * 3).toISOString(),
     },
     {
+      id: "sub-seed-002",
       widget_id: demoWidgetId,
       user_id: userId,
       data: {
@@ -125,6 +125,7 @@ async function seed() {
       created_at: new Date(Date.now() - 3600 * 1000 * 12).toISOString(),
     },
     {
+      id: "sub-seed-003",
       widget_id: demoWidgetId,
       user_id: userId,
       data: {
@@ -151,13 +152,14 @@ async function seed() {
   ];
 
   for (const sub of sampleSubmissions) {
-    const { error: subErr } = await supabaseAdmin.from("submissions").insert(sub);
-    if (subErr) {
-      logger.warn(`⚠️ Sample submission insert warning: ${subErr.message}`);
+    try {
+      await db.collection("submissions").doc(sub.id).set(sub, { merge: true });
+    } catch (err: any) {
+      logger.warn(`⚠️ Sample submission insert warning: ${err.message}`);
     }
   }
 
-  logger.info("🎉 Database seeding completed successfully!");
+  logger.info("🎉 Firestore seeding completed successfully!");
 }
 
 seed().catch((err) => {

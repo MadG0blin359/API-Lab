@@ -3,7 +3,7 @@ version: "1.0"
 name: "flyrank-capstone-lead-capture-platform"
 language: "typescript"
 framework: "express"
-database: "postgresql-supabase"
+database: "firestore-google-cloud"
 
 run: "npm run dev"
 build: "npm run build"

@@ -41,13 +41,36 @@ export const errorHandler = (
     message = "Invalid or missing CSRF token. Please provide a valid 'x-csrf-token' header.";
   }
 
-  // Handle PostgREST / Supabase specific errors
-  if (err.code && typeof err.code === "string" && err.details) {
-    logger.warn(`PostgREST error: ${err.message} (${err.code})`);
-    // PostgreSQL unique constraint violation
-    if (err.code === "23505") {
+  // Handle Firebase Auth errors
+  if (err.code && typeof err.code === "string" && err.code.startsWith("auth/")) {
+    logger.warn(`Firebase Auth error: ${err.message} (${err.code})`);
+    if (err.code === "auth/id-token-expired") {
+      statusCode = 401;
+      message = "Authentication token has expired. Please log in again.";
+    } else if (err.code === "auth/user-not-found" || err.code === "auth/wrong-password") {
+      statusCode = 401;
+      message = "Invalid email or password.";
+    } else if (err.code === "auth/email-already-exists") {
       statusCode = 409;
-      message = "Resource already exists or violates unique constraint.";
+      message = "An account with this email already exists.";
+    } else if (err.code === "auth/argument-error" || err.code === "auth/invalid-id-token") {
+      statusCode = 401;
+      message = "Invalid authentication token provided.";
+    }
+  }
+
+  // Handle Google Cloud / Firestore gRPC error codes
+  if (err.code && typeof err.code === "number") {
+    // 5 = NOT_FOUND, 6 = ALREADY_EXISTS, 7 = PERMISSION_DENIED
+    if (err.code === 5) {
+      statusCode = 404;
+      message = err.details || "Requested document was not found.";
+    } else if (err.code === 6) {
+      statusCode = 409;
+      message = "Resource already exists.";
+    } else if (err.code === 7) {
+      statusCode = 403;
+      message = "Permission denied.";
     }
   }
 

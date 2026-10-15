@@ -12,11 +12,13 @@ services:
         value: production
       - key: PORT
         value: 10000
-      - key: SUPABASE_URL
+      - key: FIREBASE_PROJECT_ID
         sync: false
-      - key: SUPABASE_ANON_KEY
+      - key: FIREBASE_CLIENT_EMAIL
         sync: false
-      - key: SUPABASE_SERVICE_ROLE_KEY
+      - key: FIREBASE_PRIVATE_KEY
+        sync: false
+      - key: FIREBASE_API_KEY
         sync: false
       - key: COOKIE_SECRET
         generateValue: true

@@ -3,7 +3,7 @@ import { widgetService } from "../services/widget.service.js";
 
 export const getWidgets = async (req: Request, res: Response): Promise<void> => {
   const userId = req.user!.id;
-  const result = await widgetService.getAll(userId, req.query as any, req.token);
+  const result = await widgetService.getAll(userId, req.query as any);
   res.status(200).json({
     success: true,
     data: result.widgets,
@@ -13,7 +13,7 @@ export const getWidgets = async (req: Request, res: Response): Promise<void> => 
 
 export const getWidgetById = async (req: Request, res: Response): Promise<void> => {
   const userId = req.user!.id;
-  const widget = await widgetService.getById(req.params.id as string, userId, req.token);
+  const widget = await widgetService.getById(req.params.id as string, userId);
   res.status(200).json({
     success: true,
     data: widget,
@@ -23,7 +23,7 @@ export const getWidgetById = async (req: Request, res: Response): Promise<void> 
 export const createWidget = async (req: Request, res: Response): Promise<void> => {
   const userId = req.user!.id;
   const baseUrl = `${req.protocol}://${req.get("host")}`;
-  const widget = await widgetService.create(userId, req.body, req.token);
+  const widget = await widgetService.create(userId, req.body);
   const snippetData = widgetService.generateSnippet(widget.id, baseUrl);
 
   res.status(201).json({
@@ -42,8 +42,7 @@ export const updateWidget = async (req: Request, res: Response): Promise<void> =
   const widget = await widgetService.update(
     req.params.id as string,
     userId,
-    req.body,
-    req.token
+    req.body
   );
   res.status(200).json({
     success: true,
@@ -54,7 +53,7 @@ export const updateWidget = async (req: Request, res: Response): Promise<void> =
 
 export const deleteWidget = async (req: Request, res: Response): Promise<void> => {
   const userId = req.user!.id;
-  await widgetService.delete(req.params.id as string, userId, req.token);
+  await widgetService.delete(req.params.id as string, userId);
   res.status(200).json({
     success: true,
     message: "Widget deleted successfully",
@@ -63,7 +62,7 @@ export const deleteWidget = async (req: Request, res: Response): Promise<void> =
 
 export const getWidgetSnippet = async (req: Request, res: Response): Promise<void> => {
   const userId = req.user!.id;
-  const widget = await widgetService.getById(req.params.id as string, userId, req.token);
+  const widget = await widgetService.getById(req.params.id as string, userId);
   const baseUrl = `${req.protocol}://${req.get("host")}`;
   const snippetData = widgetService.generateSnippet(widget.id, baseUrl);
 
