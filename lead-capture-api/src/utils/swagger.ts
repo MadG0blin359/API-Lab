@@ -11,6 +11,10 @@ const swaggerDocument = {
   },
   servers: [
     {
+      url: "https://api-lab-lead-capture-api.onrender.com",
+      description: "Production (Render)",
+    },
+    {
       url: "http://localhost:3000",
       description: "Development / Local server",
     },

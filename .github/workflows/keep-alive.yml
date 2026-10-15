@@ -44,3 +44,21 @@ jobs:
           else
             echo "⚠️ Non-200 status code received ($HTTP_STATUS). Check response above."
           fi
+
+      - name: Ping Lead-Capture Platform API (Wakes Render & Verifies Health)
+        run: |
+          echo "Sending keep-alive ping to Lead-Capture API..."
+          # Render free instances can take up to 60s to wake from cold sleep
+          HTTP_STATUS=$(curl -s -o response_lead.json -w "%{http_code}" --max-time 90 https://api-lab-lead-capture-api.onrender.com/health)
+          
+          echo "HTTP Status Code: $HTTP_STATUS"
+          echo "Response Body:"
+          cat response_lead.json
+          echo ""
+          
+          if [ "$HTTP_STATUS" -eq 200 ]; then
+            echo "✅ Successfully pinged Lead-Capture API! Render service is active."
+          else
+            echo "⚠️ Non-200 status code received ($HTTP_STATUS). Check response above."
+          fi
+

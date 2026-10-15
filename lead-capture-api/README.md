@@ -1,6 +1,18 @@
 # 🚀 Embeddable Widget & Lead-Capture Platform
 
+[![Render](https://img.shields.io/badge/Render-Live-46E3B7?style=flat&logo=render&logoColor=white)](https://api-lab-lead-capture-api.onrender.com/)
+[![Swagger Docs](https://img.shields.io/badge/API%20Docs-Swagger%20UI-85EA2D?style=flat&logo=swagger&logoColor=black)](https://api-lab-lead-capture-api.onrender.com/docs)
+[![Health Status](https://img.shields.io/badge/Health%20Check-Live-green?style=flat)](https://api-lab-lead-capture-api.onrender.com/health)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue?style=flat&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Firebase](https://img.shields.io/badge/Firebase-Auth%20%26%20Firestore-orange?style=flat&logo=firebase&logoColor=white)](https://firebase.google.com/)
+
 > A hardened, multi-tenant backend platform that lets customers create customizable embeddable widgets, install them with a single line of `<script>`, and safely process submissions from across the public internet — validated, abuse-protected, geo-enriched, and visualized in an owner dashboard powered by **Firebase Auth** and **Google Cloud Firestore**.
+
+### 🌐 Live Production Deployment
+- **Live Base URL**: [`https://api-lab-lead-capture-api.onrender.com`](https://api-lab-lead-capture-api.onrender.com)
+- **Interactive Swagger Docs**: [`https://api-lab-lead-capture-api.onrender.com/docs`](https://api-lab-lead-capture-api.onrender.com/docs)
+- **Health / Liveness Check**: [`https://api-lab-lead-capture-api.onrender.com/health`](https://api-lab-lead-capture-api.onrender.com/health)
+- **Embeddable Script Bundle**: [`https://api-lab-lead-capture-api.onrender.com/widget.v1.js`](https://api-lab-lead-capture-api.onrender.com/widget.v1.js)
 
 ---
 
@@ -298,6 +310,10 @@ To test cross-origin embedding on a different origin:
 ### Single-Line Embed Snippet:
 
 ```html
+<!-- Production (Live on Render) -->
+<script src="https://api-lab-lead-capture-api.onrender.com/widget.v1.js?id=00000000-0000-0000-0000-000000000001" data-widget-id="00000000-0000-0000-0000-000000000001" async defer></script>
+
+<!-- Local Development -->
 <script src="http://localhost:3000/widget.v1.js?id=00000000-0000-0000-0000-000000000001" data-widget-id="00000000-0000-0000-0000-000000000001" async defer></script>
 ```
 
@@ -370,9 +386,9 @@ This repository includes a [`render.yaml`](render.yaml) specification configured
    - `CSRF_SECRET`: `(generate 32-char string)`
    - `CSRF_ENABLED`: `true`
    - `CORS_ORIGIN`: `*`
-   - `API_BASE_URL`: `https://your-service-name.onrender.com`
+   - `API_BASE_URL`: `https://api-lab-lead-capture-api.onrender.com`
 
-7. Click **Deploy Web Service**. Once deployed, your Swagger API docs will be live at `https://your-service-name.onrender.com/docs`.
+7. Click **Deploy Web Service**. Once deployed, your Swagger API docs will be live at `https://api-lab-lead-capture-api.onrender.com/docs`.
 
 ---
 

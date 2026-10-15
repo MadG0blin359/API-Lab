@@ -112,7 +112,7 @@
 
     const defaultApiUrl = window.location.origin.includes(":3000") 
       ? window.location.origin 
-      : "http://localhost:3000";
+      : (getQueryParam("apiUrl") || "https://api-lab-lead-capture-api.onrender.com");
 
     const initialId = getQueryParam("id") || "00000000-0000-0000-0000-000000000001";
     document.getElementById("customWidgetId").value = initialId;
