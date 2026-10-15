@@ -1,10 +1,11 @@
 services:
   - type: web
     name: lead-capture-api
-    runtime: node
+    runtime: docker
     plan: free
-    buildCommand: npm install && npm run build
-    startCommand: npm start
+    rootDir: lead-capture-api
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
     healthCheckPath: /health
     autoDeploy: true
     envVars:

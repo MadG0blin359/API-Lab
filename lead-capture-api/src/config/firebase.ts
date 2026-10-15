@@ -33,11 +33,13 @@ function initFirebase(): App {
     });
   }
 
-  // 2. Check service account file path or default local serviceAccountKey.json
+  // 2. Check service account file path, Render Secret File, or default local serviceAccountKey.json
   const defaultLocalKey = path.join(process.cwd(), "serviceAccountKey.json");
+  const renderSecretKey = "/etc/secrets/serviceAccountKey.json";
   const keyPath =
     env.FIREBASE_SERVICE_ACCOUNT_PATH ||
     process.env.GOOGLE_APPLICATION_CREDENTIALS ||
+    (fs.existsSync(renderSecretKey) ? renderSecretKey : undefined) ||
     (fs.existsSync(defaultLocalKey) ? defaultLocalKey : undefined);
 
   if (keyPath) {

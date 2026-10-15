@@ -316,33 +316,62 @@ To test cross-origin embedding on a different origin:
 
 ---
 
-## ☁️ Deployment Guide (Render)
+## 🐳 Docker & Containerization
 
-This repository includes a [`render.yaml`](render.yaml) specification for zero-configuration deployment on [Render](https://render.com).
+A multi-stage, hardened production `Dockerfile` is included in the project:
+
+### Build & Run via Docker Locally
+
+```bash
+# Build the Docker image
+docker build -t lead-capture-api .
+
+# Run container with environment variables
+docker run -p 10000:10000 --env-file .env lead-capture-api
+```
+
+The container automatically runs as a non-root `node` user, binds to `0.0.0.0`, includes container health checks (`/health`), and supports Render's reverse proxy headers.
+
+---
+
+## ☁️ Deployment Guide (Render with Docker)
+
+This repository includes a [`render.yaml`](render.yaml) specification configured with `runtime: docker` for zero-configuration deployment on [Render](https://render.com).
 
 ### Step-by-Step Render Deployment:
 
 1. Push this repository to **GitHub**.
-2. Log in to [Render Dashboard](https://dashboard.render.com).
+2. Log in to your [Render Dashboard](https://dashboard.render.com).
 3. Click **New +** $\rightarrow$ **Web Service**.
-4. Connect your GitHub repository.
-5. Set the following build and start commands:
-   - **Environment:** `Node`
-   - **Build Command:** `npm install && npm run build`
-   - **Start Command:** `npm start`
+4. Connect your GitHub repository (`API-Lab`).
+5. Configure the service:
+   - **Language / Runtime:** `Docker`
+   - **Root Directory:** `lead-capture-api`
+   - **Dockerfile Path:** `./Dockerfile`
    - **Health Check Path:** `/health`
-6. Add the following **Environment Variables** in Render:
+6. Supply Firebase Credentials (Choose either Option A or B):
+
+   #### Option A: Render Secret Files (Recommended)
+   - In Render, click the **Secret Files** tab.
+   - Click **Add Secret File**.
+   - **Filename:** `serviceAccountKey.json`
+   - Paste the contents of your downloaded Firebase service account JSON.
+   - *(The server automatically detects `/etc/secrets/serviceAccountKey.json`)*.
+
+   #### Option B: Environment Variables
+   Under **Environment Variables**, add:
    - `NODE_ENV`: `production`
    - `PORT`: `10000`
    - `FIREBASE_PROJECT_ID`: `your-firebase-project-id`
    - `FIREBASE_CLIENT_EMAIL`: `your-service-account-client-email`
-   - `FIREBASE_PRIVATE_KEY`: `your-service-account-private-key`
-   - `FIREBASE_API_KEY`: `your-firebase-web-api-key`
+   - `FIREBASE_PRIVATE_KEY`: `"-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"`
+   - `FIREBASE_API_KEY`: `your-web-api-key`
    - `COOKIE_SECRET`: `(generate 32-char string)`
    - `CSRF_SECRET`: `(generate 32-char string)`
    - `CSRF_ENABLED`: `true`
    - `CORS_ORIGIN`: `*`
    - `API_BASE_URL`: `https://your-service-name.onrender.com`
+
 7. Click **Deploy Web Service**. Once deployed, your Swagger API docs will be live at `https://your-service-name.onrender.com/docs`.
 
 ---

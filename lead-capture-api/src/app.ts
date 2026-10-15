@@ -14,6 +14,9 @@ import { env } from "./config/env.js";
 export function createApp(): Express {
   const app: Express = express();
 
+  // ─── Reverse Proxy Support (Render / Cloud Load Balancers) ──────────────────
+  app.set("trust proxy", 1);
+
   // ─── Security Headers (Helmet) ──────────────────────────────────────────────
   // Configured to permit cross-origin embed script loading & public form submissions
   app.use(

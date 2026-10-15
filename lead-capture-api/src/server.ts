@@ -14,7 +14,7 @@ let server: Server;
 try {
   const app = createApp();
 
-  server = app.listen(env.PORT, () => {
+  server = app.listen(env.PORT, "0.0.0.0", () => {
     logger.info(`🚀 Server running in [${env.NODE_ENV}] mode on port ${env.PORT}`);
     logger.info(`📑 API Documentation: http://localhost:${env.PORT}/docs`);
     logger.info(`🩺 Health check: http://localhost:${env.PORT}/health`);
